@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const rawUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const API_BASE_URL = rawUrl
+  ? rawUrl.endsWith('/api')
+    ? rawUrl
+    : `${rawUrl}/api`
+  : '/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
