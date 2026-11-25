@@ -1,0 +1,110 @@
+{
+  "slug": "k-means",
+  "title": "K-Means Clustering",
+  "subtitle": "3D Centroid Partitioning & Expectation-Maximization",
+  "category": "unsupervised",
+  "visualizationType": "3d",
+  "difficulty": "Beginner",
+  "summary": "Partition unlabeled 3D point clouds into K cohesive clusters by alternating between nearest-centroid assignment and centroid mean recomputation.",
+  "theory": {
+    "overview": "K-Means is an unsupervised partitioning algorithm that groups n points in R^d into K disjoint clusters. Each cluster is represented by its geometric mean (centroid). The algorithm minimizes Within-Cluster Sum of Squares (Inertia) through Lloyd's alternating optimization.",
+    "intuition": "Drop K magnets (centroids) into a 3D cloud of points. First, every point snaps to its closest magnet. Next, each magnet slides to the exact center of gravity of the points attached to it. Repeating these two steps settles the magnets into stable, compact clusters.",
+    "assumptions": [
+      "Spherical clusters: Assumes clusters are roughly convex and isotropic.",
+      "Known K: The number of clusters K must be chosen ahead of time.",
+      "Sensitive to initialization: Different starting centroids can converge to different local minima.",
+      "Feature scaling: Euclidean distance treats all 3 axes equally."
+    ],
+    "complexity": {
+      "time": "O(T * n * K * d) per run",
+      "space": "O(n * d + K * d)"
+    },
+    "applications": [
+      "Customer segmentation & behavioral cohorts",
+      "3D point-cloud quantization & color palette compression",
+      "Anomaly pre-screening via distance to nearest centroid"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "distance",
+      "label": "3D Euclidean Distance",
+      "latex": "d(\\mathbf{x}_i, \\boldsymbol{\\mu}_k) = \\sqrt{(x_{i1}-\\mu_{k1})^2 + (x_{i2}-\\mu_{k2})^2 + (x_{i3}-\\mu_{k3})^2}",
+      "description": "Straight-line distance between 3D point x_i and centroid mu_k."
+    },
+    {
+      "id": "assign",
+      "label": "Cluster Assignment (E-Step)",
+      "latex": "c_i = \\arg\\min_{k \\in \\{1,\\dots,K\\}} \\|\\mathbf{x}_i - \\boldsymbol{\\mu}_k\\|^2",
+      "description": "Assigns each point to the cluster whose centroid has minimum squared distance."
+    },
+    {
+      "id": "update",
+      "label": "Centroid Update (M-Step)",
+      "latex": "\\boldsymbol{\\mu}_k = \\frac{1}{|C_k|} \\sum_{\\mathbf{x}_i \\in C_k} \\mathbf{x}_i",
+      "description": "Moves each centroid to the arithmetic mean of all points currently assigned to it."
+    },
+    {
+      "id": "inertia",
+      "label": "Inertia / WCSS Objective",
+      "latex": "J = \\sum_{k=1}^{K} \\sum_{\\mathbf{x}_i \\in C_k} \\|\\mathbf{x}_i - \\boldsymbol{\\mu}_k\\|^2",
+      "description": "Total within-cluster sum of squared distances; decreases monotonically until convergence."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "k",
+      "label": "Clusters (K)",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "defaultValue": 3,
+      "unit": "clusters",
+      "description": "Number of centroids/clusters to partition the 3D point cloud into."
+    },
+    {
+      "key": "pointCount",
+      "label": "Point Cloud Size",
+      "min": 30,
+      "max": 300,
+      "step": 30,
+      "defaultValue": 120,
+      "unit": "pts",
+      "description": "Number of 3D points rendered in the InstancedMesh point cloud."
+    },
+    {
+      "key": "maxIterations",
+      "label": "Max Iterations",
+      "min": 2,
+      "max": 20,
+      "step": 1,
+      "defaultValue": 10,
+      "unit": "steps",
+      "description": "Maximum Lloyd iterations (Assignment + Centroid Update) to compute."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": -2.4, "y": 1.8, "z": -1.2 },
+    { "id": 2, "x": -1.9, "y": 2.3, "z": -1.7 },
+    { "id": 3, "x": -2.8, "y": 1.4, "z": -0.9 },
+    { "id": 4, "x": -2.1, "y": 2.0, "z": -2.1 },
+    { "id": 5, "x": -1.5, "y": 1.6, "z": -1.4 },
+    { "id": 6, "x": -2.6, "y": 2.5, "z": -1.0 },
+    { "id": 7, "x": 2.2, "y": 2.1, "z": 1.5 },
+    { "id": 8, "x": 2.7, "y": 1.6, "z": 2.0 },
+    { "id": 9, "x": 1.8, "y": 2.5, "z": 1.1 },
+    { "id": 10, "x": 2.5, "y": 1.9, "z": 1.8 },
+    { "id": 11, "x": 3.0, "y": 2.4, "z": 1.3 },
+    { "id": 12, "x": 2.0, "y": 1.3, "z": 2.2 },
+    { "id": 13, "x": 0.2, "y": -2.2, "z": 0.8 },
+    { "id": 14, "x": -0.4, "y": -2.6, "z": 1.2 },
+    { "id": 15, "x": 0.6, "y": -1.8, "z": 0.3 },
+    { "id": 16, "x": -0.1, "y": -2.0, "z": 1.5 },
+    { "id": 17, "x": 0.8, "y": -2.5, "z": 0.9 },
+    { "id": 18, "x": -0.5, "y": -1.7, "z": 0.5 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef kmeans_3d(X, k=3, max_iters=10, seed=42):\n    rng = np.random.default_rng(seed)\n    centroids = X[rng.choice(len(X), size=k, replace=False)].copy()\n\n    for step in range(max_iters):\n        # E-step: squared Euclidean distances (N, K)\n        dists = np.linalg.norm(X[:, None, :] - centroids[None, :, :], axis=2)\n        labels = np.argmin(dists, axis=1)\n\n        # M-step: recompute cluster means\n        new_centroids = np.array([\n            X[labels == j].mean(axis=0) if np.any(labels == j) else centroids[j]\n            for j in range(k)\n        ])\n\n        inertia = np.sum((X - new_centroids[labels]) ** 2)\n        print(f\"Step {step + 1}: Inertia = {inertia:.3f}\")\n        if np.allclose(centroids, new_centroids):\n            break\n        centroids = new_centroids\n\n    return centroids, labels\n\n# Example 3D point cloud\nX = np.random.randn(120, 3)\ncentroids, labels = kmeans_3d(X, k=3)",
+    "scikitLearn": "import numpy as np\nfrom sklearn.cluster import KMeans\n\n# Generate 3D point cloud\nX = np.vstack([\n    np.random.randn(40, 3) * 0.5 + [-2.2, 2.0, -1.4],\n    np.random.randn(40, 3) * 0.5 + [2.3, 1.9, 1.6],\n    np.random.randn(40, 3) * 0.5 + [0.1, -2.1, 0.9],\n])\n\nmodel = KMeans(n_clusters=3, init='k-means++', n_init=10, max_iter=20, random_state=42)\nlabels = model.fit_predict(X)\n\nprint(\"Centroids:\\n\", model.cluster_centers_)\nprint(f\"Inertia (WCSS): {model.inertia_:.4f}\")\nprint(f\"Iterations to converge: {model.n_iter_}\")"
+  }
+}
