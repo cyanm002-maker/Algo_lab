@@ -1,0 +1,95 @@
+{
+  "order": 5,
+  "slug": "svm-rbf",
+  "title": "SVM + RBF Kernel Trick",
+  "subtitle": "3D Radial Lifting & Maximum-Margin Hyperplane",
+  "category": "supervised",
+  "visualizationType": "3d",
+  "supports2D3DToggle": false,
+  "difficulty": "Advanced",
+  "summary": "Lift non-linear 2D concentric rings into 3D space (z = x² + y²) so a flat hyperplane separates them.",
+  "evaluationChart": {
+    "type": "line",
+    "title": "Hinge Loss & Margin Width vs. Regularization C",
+    "xLabel": "Regularization (C)",
+    "yLabel": "Hinge Loss",
+    "description": "Illustrates how larger C tightens margin violations (lower hinge loss) at the cost of narrower margin width."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Kernel trick captures complex non-linear boundaries without explicit high-dim coordinates.",
+      "Maximum-margin objective yields strong generalization on small-to-medium datasets.",
+      "Memory-efficient at inference: depends only on Support Vectors."
+    ],
+    "limitations": [
+      "Training scales poorly (O(n²) to O(n³)) on very large datasets.",
+      "Does not natively output calibrated probabilities.",
+      "Sensitive to kernel hyperparameters (gamma, C) and feature scaling."
+    ],
+    "properties": {
+      "timeComplexity": "O(n² · d) to O(n³)",
+      "spaceComplexity": "O(n_sv · d)",
+      "interpretability": "Low (Black-box)",
+      "scalingRequired": "Yes (Essential)"
+    },
+    "applications": [
+      "Image & face classification",
+      "Bioinformatics & protein fold recognition",
+      "Text categorization in high-dim spaces"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "rbf",
+      "label": "RBF Kernel & Radial Lifting",
+      "latex": "\\phi(x, y) = (x, y, x^2 + y^2), \\quad K(\\mathbf{x}, \\mathbf{x}') = e^{-\\gamma\\|\\mathbf{x}-\\mathbf{x}'\\|^2}",
+      "description": "Maps 2D concentric circles into 3D where inner and outer rings sit at different heights z."
+    },
+    {
+      "id": "hinge",
+      "label": "Soft-Margin Hinge Loss",
+      "latex": "J = \\frac{1}{2}\\|\\mathbf{w}\\|^2 + C\\sum_{i=1}^{n} \\max(0, 1 - y_i(\\mathbf{w}\\cdot\\phi(\\mathbf{x}_i) + b))",
+      "description": "Balances margin maximization against margin violations controlled by C."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "liftStrength",
+      "label": "3D Kernel Lift",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "defaultValue": 1,
+      "unit": "",
+      "description": "Interpolates from flat 2D plane (0) to lifted 3D kernel space (1)."
+    },
+    {
+      "key": "cParam",
+      "label": "Regularization (C)",
+      "min": 0.5,
+      "max": 10,
+      "step": 0.5,
+      "defaultValue": 2.5,
+      "unit": "",
+      "description": "Controls trade-off between wide margin and misclassification penalty."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 0.3, "y": 0.2, "label": 1 },
+    { "id": 2, "x": -0.4, "y": 0.3, "label": 1 },
+    { "id": 3, "x": 0.1, "y": -0.5, "label": 1 },
+    { "id": 4, "x": -0.2, "y": -0.3, "label": 1 },
+    { "id": 5, "x": 0.6, "y": -0.1, "label": 1 },
+    { "id": 6, "x": -0.5, "y": -0.4, "label": 1 },
+    { "id": 7, "x": 1.9, "y": 0.4, "label": -1 },
+    { "id": 8, "x": -1.8, "y": 0.6, "label": -1 },
+    { "id": 9, "x": 0.4, "y": 1.9, "label": -1 },
+    { "id": 10, "x": -0.5, "y": -1.9, "label": -1 },
+    { "id": 11, "x": 1.5, "y": -1.4, "label": -1 },
+    { "id": 12, "x": -1.4, "y": 1.5, "label": -1 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef radial_lift(X):\n    z = np.sum(X ** 2, axis=1, keepdims=True)\n    return np.hstack([X, z])\n\n# Inner ring vs outer ring in 2D\nX_inner = np.random.randn(20, 2) * 0.4\nX_outer = np.random.randn(20, 2) * 0.3 + np.array([2.0, 0.0])\nX_3d = radial_lift(np.vstack([X_inner, X_outer]))\nprint('Lifted 3D shape:', X_3d.shape)",
+    "scikitLearn": "from sklearn.svm import SVC\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import make_pipeline\nimport numpy as np\n\nX = np.array([[0.3,0.2],[-0.4,0.3],[1.9,0.4],[-1.8,0.6]])\ny = np.array([1, 1, -1, -1])\n\nclf = make_pipeline(StandardScaler(), SVC(kernel='rbf', C=2.5, gamma='scale'))\nclf.fit(X, y)\nprint('Support vectors:', clf.named_steps['svc'].n_support_)"
+  }
+}

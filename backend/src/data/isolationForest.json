@@ -1,0 +1,90 @@
+{
+  "order": 14,
+  "slug": "isolation-forest",
+  "title": "Isolation Forest",
+  "subtitle": "Recursive Random Partitioning for Anomaly Detection",
+  "category": "unsupervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Advanced",
+  "summary": "Isolate anomalies in fewer random axis splits than dense normal points.",
+  "evaluationChart": {
+    "type": "bar",
+    "title": "Anomaly Score Distribution Histogram",
+    "xLabel": "Anomaly Score Bucket",
+    "yLabel": "Point Count",
+    "description": "Separates normal inliers (scores < 0.55) from isolated outliers (scores approaching 1.0)."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Linear O(t · ψ · log ψ) time complexity with tiny memory footprint.",
+      "Requires no distance or density matrix calculation; scales to high dimensions.",
+      "Directly targets anomaly isolation rather than profiling normal density."
+    ],
+    "limitations": [
+      "Axis-aligned splits can miss diagonal anomalies or create 'ghost' artifacts.",
+      "Requires tuning contamination threshold for binary alerting.",
+      "Local anomalies inside multi-modal clusters can be masked."
+    ],
+    "properties": {
+      "timeComplexity": "O(t · ψ · log ψ)",
+      "spaceComplexity": "O(t · ψ)",
+      "interpretability": "Moderate (Path Depth)",
+      "scalingRequired": "No"
+    },
+    "applications": [
+      "Real-time credit card fraud & intrusion detection",
+      "Server telemetry & latency spike alerting",
+      "Industrial IoT predictive maintenance"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "score",
+      "label": "Isolation Anomaly Score",
+      "latex": "s(x, n) = 2^{-\\frac{E(h(x))}{c(n)}}",
+      "description": "Shorter average path length E(h(x)) yields score s -> 1 (anomaly); longer paths yield s < 0.5."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "nTrees",
+      "label": "Isolation Trees (t)",
+      "min": 5,
+      "max": 40,
+      "step": 5,
+      "defaultValue": 15,
+      "unit": "trees",
+      "description": "Number of random isolation trees in the ensemble."
+    },
+    {
+      "key": "contamination",
+      "label": "Score Threshold",
+      "min": 0.45,
+      "max": 0.75,
+      "step": 0.05,
+      "defaultValue": 0.58,
+      "unit": "",
+      "description": "Anomaly score cutoff flagging red outlier points."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 4.2, "y": 4.4 },
+    { "id": 2, "x": 4.8, "y": 4.9 },
+    { "id": 3, "x": 5.1, "y": 4.3 },
+    { "id": 4, "x": 4.5, "y": 5.2 },
+    { "id": 5, "x": 5.4, "y": 5.0 },
+    { "id": 6, "x": 4.9, "y": 4.6 },
+    { "id": 7, "x": 4.4, "y": 4.8 },
+    { "id": 8, "x": 5.2, "y": 5.4 },
+    { "id": 9, "x": 4.6, "y": 4.1 },
+    { "id": 10, "x": 5.5, "y": 4.7 },
+    { "id": 11, "x": 1.2, "y": 8.4 },
+    { "id": 12, "x": 8.7, "y": 1.6 },
+    { "id": 13, "x": 8.2, "y": 8.1 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef c_factor(n):\n    if n <= 1: return 0.0\n    return 2.0 * (np.log(n - 1) + 0.5772156649) - (2.0 * (n - 1) / n)\n\n# Anomaly score s(x, n) = 2 ** (-mean_depth / c_factor(n))",
+    "scikitLearn": "from sklearn.ensemble import IsolationForest\nimport numpy as np\n\nX = np.array([[4.5,4.8],[5.0,5.1],[4.7,4.5],[1.2,8.4],[8.7,1.6]])\niso = IsolationForest(contamination=0.2, random_state=42)\nprint('Predictions (1=inlier, -1=outlier):', iso.fit_predict(X))"
+  }
+}

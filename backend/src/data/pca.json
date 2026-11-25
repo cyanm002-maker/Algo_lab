@@ -1,0 +1,85 @@
+{
+  "order": 13,
+  "slug": "pca",
+  "title": "Principal Component Analysis (PCA)",
+  "subtitle": "3D Orthogonal Eigenvectors & 2D Subspace Projection",
+  "category": "unsupervised",
+  "visualizationType": "3d",
+  "supports2D3DToggle": true,
+  "difficulty": "Intermediate",
+  "summary": "Find orthogonal directions of maximum variance and project 3D data onto a 2D subspace.",
+  "evaluationChart": {
+    "type": "bar",
+    "title": "Scree Plot (Explained Variance Ratio %)",
+    "xLabel": "Principal Component",
+    "yLabel": "Explained Variance (%)",
+    "description": "Shows how much total dataset variance is captured by PC1, PC2, and PC3."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Eliminates multicollinearity by producing orthogonal principal components.",
+      "Compresses high-dimensional data while preserving maximum variance.",
+      "Reduces noise and accelerates downstream supervised training."
+    ],
+    "limitations": [
+      "Linear projections cannot unfold curved manifolds (unlike t-SNE/UMAP).",
+      "Principal components are linear combinations, reducing feature interpretability.",
+      "Extremely sensitive to feature scales; standardization is mandatory."
+    ],
+    "properties": {
+      "timeComplexity": "O(min(n²d, nd²))",
+      "spaceComplexity": "O(d²)",
+      "interpretability": "Low (Latent Axes)",
+      "scalingRequired": "Yes (Mandatory)"
+    },
+    "applications": [
+      "Exploratory 3D/2D visualization of embeddings",
+      "Image compression & Eigenfaces",
+      "Noise filtering & feature decorrelation"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "cov",
+      "label": "Covariance Eigendecomposition",
+      "latex": "\\boldsymbol{\\Sigma} \\mathbf{v}_k = \\lambda_k \\mathbf{v}_k, \\quad \\boldsymbol{\\Sigma} = \\frac{1}{n-1}\\mathbf{X}^T\\mathbf{X}",
+      "description": "Eigenvectors v_k define orthogonal axes; eigenvalues lambda_k measure variance."
+    },
+    {
+      "id": "evr",
+      "label": "Explained Variance Ratio",
+      "latex": "\\text{EVR}_k = \\frac{\\lambda_k}{\\sum_{j=1}^{d} \\lambda_j}",
+      "description": "Fraction of total variance retained by component k."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "projectionAlpha",
+      "label": "3D → 2D Projection",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "defaultValue": 0,
+      "unit": "",
+      "description": "Smoothly flattens 3D points onto the PC1–PC2 plane (1 = 2D subspace)."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": -2.5, "y": -1.4, "z": -1.1 },
+    { "id": 2, "x": -1.8, "y": -1.1, "z": -0.7 },
+    { "id": 3, "x": -1.1, "y": -0.5, "z": -0.5 },
+    { "id": 4, "x": -0.4, "y": -0.2, "z": -0.1 },
+    { "id": 5, "x": 0.3, "y": 0.2, "z": 0.2 },
+    { "id": 6, "x": 1.1, "y": 0.7, "z": 0.4 },
+    { "id": 7, "x": 1.8, "y": 1.0, "z": 0.9 },
+    { "id": 8, "x": 2.4, "y": 1.5, "z": 1.1 },
+    { "id": 9, "x": -1.4, "y": 0.9, "z": -0.9 },
+    { "id": 10, "x": 1.3, "y": -0.8, "z": 0.8 },
+    { "id": 11, "x": -0.7, "y": 0.6, "z": -0.4 },
+    { "id": 12, "x": 0.8, "y": -0.4, "z": 0.5 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef pca(X, n_components=2):\n    X_c = X - X.mean(axis=0)\n    cov = np.cov(X_c, rowvar=False)\n    eigvals, eigvecs = np.linalg.eigh(cov)\n    idx = np.argsort(eigvals)[::-1]\n    return X_c @ eigvecs[:, idx[:n_components]]",
+    "scikitLearn": "from sklearn.decomposition import PCA\nfrom sklearn.preprocessing import StandardScaler\nimport numpy as np\n\nX = np.random.randn(50, 3)\nX_std = StandardScaler().fit_transform(X)\npca = PCA(n_components=2).fit(X_std)\nprint('Explained variance ratio:', pca.explained_variance_ratio_)"
+  }
+}

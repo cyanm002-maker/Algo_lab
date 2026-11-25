@@ -1,0 +1,85 @@
+{
+  "order": 7,
+  "slug": "random-forest",
+  "title": "Random Forest & Bagging",
+  "subtitle": "Ensemble Voting & Variance Reduction",
+  "category": "supervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Intermediate",
+  "summary": "Aggregate many bootstrapped decision trees so noisy splits cancel out into a smooth boundary.",
+  "evaluationChart": {
+    "type": "line",
+    "title": "Out-of-Bag (OOB) Error vs. Number of Trees",
+    "xLabel": "n_estimators (Trees)",
+    "yLabel": "OOB Error Rate",
+    "description": "Shows how ensemble error drops and stabilizes as more decorrelated trees are averaged."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Dramatically reduces variance compared to a single Decision Tree.",
+      "Robust to outliers, non-linearities, and unscaled tabular features.",
+      "Provides reliable Out-of-Bag validation and feature importance."
+    ],
+    "limitations": [
+      "Less interpretable than a single tree (hundreds of trees).",
+      "Larger memory footprint and slower real-time inference.",
+      "Cannot extrapolate beyond the range of training target values."
+    ],
+    "properties": {
+      "timeComplexity": "O(B · n · d · log n)",
+      "spaceComplexity": "O(B · nodes)",
+      "interpretability": "Moderate (Feature Imp.)",
+      "scalingRequired": "No"
+    },
+    "applications": [
+      "Tabular Kaggle & enterprise fraud models",
+      "Customer churn & credit underwriting",
+      "Remote sensing land-cover classification"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "bagging",
+      "label": "Bootstrap Ensemble Voting",
+      "latex": "\\hat{y}(\\mathbf{x}) = \\text{mode}\\left\\{T_1(\\mathbf{x}), T_2(\\mathbf{x}), \\dots, T_B(\\mathbf{x})\\right\\}",
+      "description": "Combines B trees trained on random bootstrap resamples."
+    },
+    {
+      "id": "var",
+      "label": "Variance Reduction",
+      "latex": "\\text{Var}(\\bar{T}) = \\rho \\sigma^2 + \\frac{1 - \\rho}{B}\\sigma^2",
+      "description": "Lower tree correlation rho and larger B shrink ensemble variance."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "nEstimators",
+      "label": "Number of Trees (B)",
+      "min": 1,
+      "max": 25,
+      "step": 2,
+      "defaultValue": 9,
+      "unit": "trees",
+      "description": "More trees smooth out the decision boundary."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 1.4, "y": 2.3, "label": 0 },
+    { "id": 2, "x": 2.1, "y": 3.5, "label": 0 },
+    { "id": 3, "x": 2.7, "y": 1.7, "label": 0 },
+    { "id": 4, "x": 3.5, "y": 2.8, "label": 0 },
+    { "id": 5, "x": 4.2, "y": 3.9, "label": 0 },
+    { "id": 6, "x": 3.1, "y": 5.2, "label": 0 },
+    { "id": 7, "x": 5.6, "y": 6.1, "label": 1 },
+    { "id": 8, "x": 6.4, "y": 5.4, "label": 1 },
+    { "id": 9, "x": 6.9, "y": 7.2, "label": 1 },
+    { "id": 10, "x": 7.6, "y": 6.5, "label": 1 },
+    { "id": 11, "x": 8.3, "y": 7.8, "label": 1 },
+    { "id": 12, "x": 5.2, "y": 7.4, "label": 1 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\nfrom sklearn.tree import DecisionTreeClassifier\n\ndef random_forest_fit(X, y, n_trees=9):\n    trees = []\n    n = len(X)\n    for seed in range(n_trees):\n        rng = np.random.default_rng(seed)\n        idx = rng.choice(n, size=n, replace=True)\n        t = DecisionTreeClassifier(max_depth=3, max_features='sqrt', random_state=seed)\n        t.fit(X[idx], y[idx])\n        trees.append(t)\n    return trees",
+    "scikitLearn": "from sklearn.ensemble import RandomForestClassifier\nimport numpy as np\n\nX = np.array([[1.4,2.3],[2.7,1.7],[5.6,6.1],[7.6,6.5]])\ny = np.array([0, 0, 1, 1])\n\nrf = RandomForestClassifier(n_estimators=100, oob_score=True, random_state=42)\nrf.fit(X, y)\nprint('OOB Accuracy:', rf.oob_score_)"
+  }
+}

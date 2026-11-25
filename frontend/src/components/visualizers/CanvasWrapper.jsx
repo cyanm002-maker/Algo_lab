@@ -1,30 +1,28 @@
 import React from 'react';
-import LinearRegression2D from './LinearRegression2D';
-import KMeans3D from './KMeans3D';
+import Visualizer2D from './Visualizer2D';
+import Visualizer3D from './Visualizer3D';
 
-/**
- * Dynamically switches between 2D D3/SVG and 3D React Three Fiber canvases
- * based on the active algorithm lesson.
- */
 export default function CanvasWrapper({
   algorithm,
+  viewMode,
   stepData,
-  points,
   onAddPoint,
+  onMoveQuery,
   onResetPoints,
   hasCustomPoints
 }) {
   if (!algorithm) return null;
 
-  if (algorithm.visualizationType === '3d' || algorithm.slug === 'k-means') {
-    return <KMeans3D stepData={stepData} />;
+  const activeMode = viewMode || algorithm.visualizationType;
+  if (activeMode === '3d') {
+    return <Visualizer3D stepData={stepData} />;
   }
 
   return (
-    <LinearRegression2D
+    <Visualizer2D
       stepData={stepData}
-      points={points}
       onAddPoint={onAddPoint}
+      onMoveQuery={onMoveQuery}
       onResetPoints={onResetPoints}
       hasCustomPoints={hasCustomPoints}
     />

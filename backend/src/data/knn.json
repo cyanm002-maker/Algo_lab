@@ -1,0 +1,87 @@
+{
+  "order": 4,
+  "slug": "knn",
+  "title": "K-Nearest Neighbors (KNN)",
+  "subtitle": "Non-Parametric Distance Voting (2D & 3D Toggle)",
+  "category": "supervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": true,
+  "difficulty": "Foundational",
+  "summary": "Classify query points by majority vote among the K closest neighbors in 2D or 3D space.",
+  "evaluationChart": {
+    "type": "line",
+    "title": "Validation Accuracy vs. K Value",
+    "xLabel": "Neighbors (K)",
+    "yLabel": "Accuracy (%)",
+    "description": "Leave-one-out cross-validation accuracy across K=1..15 showing overfitting at K=1 and underfitting at large K."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Zero training phase: naturally adapts to arbitrary non-linear decision boundaries.",
+      "Simple to understand and trivial to update with new labeled data.",
+      "Works seamlessly for both classification and regression."
+    ],
+    "limitations": [
+      "O(n · d) inference cost: slow on large datasets without KD-trees/Ball-trees.",
+      "Suffers from the Curse of Dimensionality in high-dimensional spaces.",
+      "Extremely sensitive to unscaled features and noisy local outliers."
+    ],
+    "properties": {
+      "timeComplexity": "O(n · d) inference",
+      "spaceComplexity": "O(n · d)",
+      "interpretability": "Moderate (Case-based)",
+      "scalingRequired": "Yes (Essential)"
+    },
+    "applications": [
+      "Recommender systems & similarity search",
+      "Visual pattern & handwriting recognition",
+      "Missing value imputation"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "dist",
+      "label": "Euclidean Distance",
+      "latex": "d(\\mathbf{q}, \\mathbf{x}_i) = \\sqrt{\\sum_{j=1}^{p} (q_j - x_{ij})^2}",
+      "description": "Measures straight-line distance from query point q to training point x_i."
+    },
+    {
+      "id": "vote",
+      "label": "Majority Vote Prediction",
+      "latex": "\\hat{y}(\\mathbf{q}) = \\arg\\max_{c} \\sum_{i \\in \\mathcal{N}_K(\\mathbf{q})} \\mathbb{I}(y_i = c)",
+      "description": "Assigns the most frequent class among the K nearest neighbors N_K(q)."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "k",
+      "label": "Neighbors (K)",
+      "min": 1,
+      "max": 13,
+      "step": 2,
+      "defaultValue": 5,
+      "unit": "nbrs",
+      "description": "Number of nearest neighbors voting on the query label."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 1.6, "y": 2.2, "z": -1.2, "label": 0 },
+    { "id": 2, "x": 2.1, "y": 3.0, "z": -1.8, "label": 0 },
+    { "id": 3, "x": 2.8, "y": 1.8, "z": -0.9, "label": 0 },
+    { "id": 4, "x": 3.4, "y": 2.9, "z": -1.4, "label": 0 },
+    { "id": 5, "x": 1.9, "y": 4.2, "z": -0.6, "label": 0 },
+    { "id": 6, "x": 4.0, "y": 3.6, "z": -0.3, "label": 0 },
+    { "id": 7, "x": 5.5, "y": 6.4, "z": 1.4, "label": 1 },
+    { "id": 8, "x": 6.2, "y": 5.8, "z": 1.9, "label": 1 },
+    { "id": 9, "x": 6.8, "y": 7.1, "z": 1.2, "label": 1 },
+    { "id": 10, "x": 7.5, "y": 6.0, "z": 2.1, "label": 1 },
+    { "id": 11, "x": 5.9, "y": 7.6, "z": 1.6, "label": 1 },
+    { "id": 12, "x": 7.9, "y": 7.4, "z": 1.8, "label": 1 },
+    { "id": 13, "x": 4.5, "y": 5.2, "z": 0.4, "label": 1 },
+    { "id": 14, "x": 3.1, "y": 4.8, "z": -0.2, "label": 0 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\nfrom collections import Counter\n\ndef knn_predict(X_train, y_train, q, k=5):\n    dists = np.linalg.norm(X_train - q, axis=1)\n    k_idx = np.argsort(dists)[:k]\n    votes = Counter(y_train[k_idx])\n    return votes.most_common(1)[0][0]",
+    "scikitLearn": "from sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import make_pipeline\nimport numpy as np\n\nX = np.array([[1.6,2.2],[2.1,3.0],[5.5,6.4],[6.8,7.1]])\ny = np.array([0, 0, 1, 1])\n\nmodel = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=3))\nmodel.fit(X, y)\nprint('Prediction:', model.predict([[4.0, 4.5]]))"
+  }
+}

@@ -33,6 +33,7 @@ const AlgorithmSchema = new mongoose.Schema(
       trim: true,
       lowercase: true
     },
+    order: { type: Number, default: 0 },
     title: { type: String, required: true },
     subtitle: { type: String, default: '' },
     category: {
@@ -45,19 +46,28 @@ const AlgorithmSchema = new mongoose.Schema(
       enum: ['2d', '3d'],
       required: true
     },
+    supports2D3DToggle: { type: Boolean, default: false },
     difficulty: {
       type: String,
-      enum: ['Beginner', 'Intermediate', 'Advanced'],
-      default: 'Beginner'
+      enum: ['Foundational', 'Intermediate', 'Advanced'],
+      default: 'Foundational'
     },
     summary: { type: String, required: true },
-    theory: {
-      overview: { type: String, required: true },
-      intuition: { type: String, required: true },
-      assumptions: [{ type: String }],
-      complexity: {
-        time: { type: String, default: '' },
-        space: { type: String, default: '' }
+    evaluationChart: {
+      type: { type: String, default: 'line' },
+      title: { type: String, default: '' },
+      xLabel: { type: String, default: '' },
+      yLabel: { type: String, default: '' },
+      description: { type: String, default: '' }
+    },
+    prosAndCons: {
+      advantages: [{ type: String }],
+      limitations: [{ type: String }],
+      properties: {
+        timeComplexity: { type: String, default: '' },
+        spaceComplexity: { type: String, default: '' },
+        interpretability: { type: String, default: '' },
+        scalingRequired: { type: String, default: '' }
       },
       applications: [{ type: String }]
     },

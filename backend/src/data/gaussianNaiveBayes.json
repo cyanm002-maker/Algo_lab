@@ -1,0 +1,77 @@
+{
+  "order": 8,
+  "slug": "gaussian-naive-bayes",
+  "title": "Gaussian Naive Bayes",
+  "subtitle": "Bayes' Theorem & Class-Conditional Contours",
+  "category": "supervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Intermediate",
+  "summary": "Model each class as an axis-aligned Gaussian cloud and classify via posterior probabilities.",
+  "evaluationChart": {
+    "type": "bar",
+    "title": "Class Posterior Probability Distribution",
+    "xLabel": "Class",
+    "yLabel": "Posterior P(y=c | x)",
+    "description": "Displays the normalized Bayesian posterior probabilities for the active query point."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Blazingly fast O(n · d) closed-form training and instant inference.",
+      "Performs remarkably well on small datasets and high-dimensional text.",
+      "Provides explicit generative likelihoods and posterior probabilities."
+    ],
+    "limitations": [
+      "Conditional independence assumption ignores feature correlations.",
+      "Gaussian assumption fails if true feature distributions are heavily skewed.",
+      "Zero-variance or rare feature issues require Laplace/var smoothing."
+    ],
+    "properties": {
+      "timeComplexity": "O(n · d)",
+      "spaceComplexity": "O(C · d)",
+      "interpretability": "High (Probabilistic)",
+      "scalingRequired": "No"
+    },
+    "applications": [
+      "Real-time spam & phishing detection",
+      "Medical symptom probability baseline",
+      "Document & sentiment classification"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "bayes",
+      "label": "Bayes' Theorem",
+      "latex": "P(y=c \\mid \\mathbf{x}) \\propto P(y=c) \\prod_{j=1}^{d} \\mathcal{N}(x_j \\mid \\mu_{c,j}, \\sigma_{c,j}^2)",
+      "description": "Multiplies class prior by independent Gaussian likelihoods across features."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "varSmoothing",
+      "label": "Variance Smoothing",
+      "min": 0.05,
+      "max": 1.0,
+      "step": 0.05,
+      "defaultValue": 0.15,
+      "unit": "",
+      "description": "Adds stability floor to class feature variances."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 2.0, "y": 2.4, "label": 0 },
+    { "id": 2, "x": 2.5, "y": 3.1, "label": 0 },
+    { "id": 3, "x": 3.1, "y": 2.2, "label": 0 },
+    { "id": 4, "x": 2.8, "y": 3.6, "label": 0 },
+    { "id": 5, "x": 3.4, "y": 2.9, "label": 0 },
+    { "id": 6, "x": 6.2, "y": 6.0, "label": 1 },
+    { "id": 7, "x": 6.8, "y": 6.9, "label": 1 },
+    { "id": 8, "x": 7.4, "y": 5.8, "label": 1 },
+    { "id": 9, "x": 7.0, "y": 7.3, "label": 1 },
+    { "id": 10, "x": 6.5, "y": 6.4, "label": 1 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef gaussian_pdf(x, mean, var):\n    return np.exp(-0.5 * ((x - mean) ** 2) / var) / np.sqrt(2 * np.pi * var)\n\n# Compute posterior for query point q\nprint('PDF example:', gaussian_pdf(2.5, 2.7, 0.3))",
+    "scikitLearn": "from sklearn.naive_bayes import GaussianNB\nimport numpy as np\n\nX = np.array([[2.0,2.4],[2.8,3.6],[6.2,6.0],[7.0,7.3]])\ny = np.array([0, 0, 1, 1])\n\ngnb = GaussianNB().fit(X, y)\nprint('Posteriors:', gnb.predict_proba([[4.5, 4.5]]))"
+  }
+}

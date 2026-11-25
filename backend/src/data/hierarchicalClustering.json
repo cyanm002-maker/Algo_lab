@@ -1,0 +1,75 @@
+{
+  "order": 11,
+  "slug": "hierarchical-clustering",
+  "title": "Hierarchical Clustering",
+  "subtitle": "Agglomerative Merging & Dendrogram Cut-off",
+  "category": "unsupervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Intermediate",
+  "summary": "Build a bottom-up merge hierarchy and slice the Dendrogram at any linkage distance.",
+  "evaluationChart": {
+    "type": "dendrogram",
+    "title": "Agglomerative Linkage Dendrogram",
+    "xLabel": "Sample Leaf Index",
+    "yLabel": "Merge Distance",
+    "description": "Visualizes the hierarchical merge tree; horizontal dashed line indicates the active distance cut-off."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Produces a complete multi-scale hierarchy (Dendrogram) without fixing K beforehand.",
+      "Deterministic output with no random centroid initialization.",
+      "Supports custom distance metrics and linkage criteria."
+    ],
+    "limitations": [
+      "O(n²) to O(n³) time and O(n²) memory — unsuitable for massive datasets.",
+      "Greedy merge decisions cannot be undone in later steps.",
+      "Sensitive to noise and chaining effects under single linkage."
+    ],
+    "properties": {
+      "timeComplexity": "O(n² log n)",
+      "spaceComplexity": "O(n²)",
+      "interpretability": "Very High (Dendrogram)",
+      "scalingRequired": "Yes"
+    },
+    "applications": [
+      "Phylogenetic & gene expression taxonomy",
+      "Document topic hierarchy discovery",
+      "Exploratory customer micro-segmentation"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "linkage",
+      "label": "Average Linkage Distance",
+      "latex": "D(A, B) = \\frac{1}{|A|\\cdot|B|} \\sum_{a \\in A} \\sum_{b \\in B} \\|a - b\\|_2",
+      "description": "Measures mean pairwise Euclidean distance between two candidate clusters."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "cutoff",
+      "label": "Dendrogram Cut-off",
+      "min": 0.5,
+      "max": 6.0,
+      "step": 0.25,
+      "defaultValue": 2.5,
+      "unit": "dist",
+      "description": "Distance threshold slicing the Dendrogram into discrete clusters."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 1.5, "y": 2.0 },
+    { "id": 2, "x": 2.1, "y": 2.4 },
+    { "id": 3, "x": 2.4, "y": 1.7 },
+    { "id": 4, "x": 5.8, "y": 6.4 },
+    { "id": 5, "x": 6.4, "y": 6.9 },
+    { "id": 6, "x": 6.9, "y": 6.1 },
+    { "id": 7, "x": 7.5, "y": 2.2 },
+    { "id": 8, "x": 8.1, "y": 2.7 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef cluster_dist(A, B):\n    return np.mean([np.linalg.norm(a - b) for a in A for b in B])",
+    "scikitLearn": "from sklearn.cluster import AgglomerativeClustering\nimport numpy as np\n\nX = np.array([[1.5,2.0],[2.1,2.4],[5.8,6.4],[6.4,6.9],[7.5,2.2],[8.1,2.7]])\nagg = AgglomerativeClustering(n_clusters=None, distance_threshold=2.5, linkage='average')\nprint('Labels:', agg.fit_predict(X))"
+  }
+}

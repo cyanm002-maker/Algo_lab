@@ -1,0 +1,98 @@
+{
+  "order": 10,
+  "slug": "dbscan",
+  "title": "DBSCAN",
+  "subtitle": "Density-Based Spatial Clustering & Noise Detection",
+  "category": "unsupervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Intermediate",
+  "summary": "Discover arbitrarily shaped clusters via ε-neighborhood density while isolating noise outliers.",
+  "evaluationChart": {
+    "type": "line",
+    "title": "Sorted K-Distance Reachability Plot",
+    "xLabel": "Points Sorted by Distance",
+    "yLabel": "k-NN Distance",
+    "description": "Sharp upward knee in the k-distance curve reveals the optimal ε radius separating dense clusters from noise."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Does not require specifying the number of clusters K upfront.",
+      "Discovers arbitrary non-convex shapes (rings, crescents, bands).",
+      "Explicitly flags low-density outliers as Noise (-1) instead of forcing them into clusters."
+    ],
+    "limitations": [
+      "Struggles when clusters have widely varying densities.",
+      "Sensitive to ε and minPts hyperparameter selection.",
+      "Distance metrics degrade in very high dimensions."
+    ],
+    "properties": {
+      "timeComplexity": "O(n log n) with KD-tree",
+      "spaceComplexity": "O(n)",
+      "interpretability": "High (Density)",
+      "scalingRequired": "Yes"
+    },
+    "applications": [
+      "Geospatial hotspot & GPS trajectory clustering",
+      "LiDAR 3D obstacle segmentation",
+      "Fraud & spatial anomaly filtering"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "eps",
+      "label": "ε-Neighborhood",
+      "latex": "N_\\varepsilon(p) = \\{q \\in D \\mid \\|p - q\\|_2 \\le \\varepsilon\\}",
+      "description": "Points within radius epsilon of point p."
+    },
+    {
+      "id": "core",
+      "label": "Core Point Condition",
+      "latex": "|N_\\varepsilon(p)| \\ge \\text{minPts}",
+      "description": "A point is Core if its ε-neighborhood contains at least minPts points."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "epsilon",
+      "label": "Epsilon Radius (ε)",
+      "min": 0.4,
+      "max": 2.5,
+      "step": 0.1,
+      "defaultValue": 1.1,
+      "unit": "",
+      "description": "Neighborhood search radius around each point."
+    },
+    {
+      "key": "minPts",
+      "label": "Min Points (minPts)",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "defaultValue": 3,
+      "unit": "pts",
+      "description": "Minimum neighbors required to form a dense Core point."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 1.8, "y": 2.2 },
+    { "id": 2, "x": 2.2, "y": 2.6 },
+    { "id": 3, "x": 2.5, "y": 2.0 },
+    { "id": 4, "x": 1.9, "y": 2.9 },
+    { "id": 5, "x": 2.8, "y": 2.5 },
+    { "id": 6, "x": 6.4, "y": 6.2 },
+    { "id": 7, "x": 6.9, "y": 6.7 },
+    { "id": 8, "x": 7.3, "y": 6.1 },
+    { "id": 9, "x": 6.7, "y": 7.1 },
+    { "id": 10, "x": 7.6, "y": 6.6 },
+    { "id": 11, "x": 2.0, "y": 7.4 },
+    { "id": 12, "x": 2.4, "y": 7.8 },
+    { "id": 13, "x": 2.8, "y": 7.3 },
+    { "id": 14, "x": 8.6, "y": 1.8 },
+    { "id": 15, "x": 4.8, "y": 4.5 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef region_query(X, idx, eps):\n    return np.where(np.linalg.norm(X - X[idx], axis=1) <= eps)[0]\n\n# Core points satisfy len(region_query) >= min_pts",
+    "scikitLearn": "from sklearn.cluster import DBSCAN\nimport numpy as np\n\nX = np.array([[1.8,2.2],[2.2,2.6],[2.5,2.0],[6.4,6.2],[6.9,6.7],[8.6,1.8]])\nlabels = DBSCAN(eps=1.1, min_samples=3).fit_predict(X)\nprint('Cluster labels (-1 = noise):', labels)"
+  }
+}

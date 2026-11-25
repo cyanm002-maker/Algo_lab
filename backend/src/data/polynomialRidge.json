@@ -1,0 +1,100 @@
+{
+  "order": 2,
+  "slug": "polynomial-ridge",
+  "title": "Polynomial & Ridge Regression",
+  "subtitle": "Basis Expansion & L2 Regularization (Bias-Variance Tradeoff)",
+  "category": "supervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Foundational",
+  "summary": "Capture non-linear curves via polynomial features while taming overfitting with L2 penalty λ.",
+  "evaluationChart": {
+    "type": "multiLine",
+    "title": "Bias-Variance: Train vs. Validation MSE by Degree",
+    "xLabel": "Polynomial Degree (d)",
+    "yLabel": "MSE Error",
+    "description": "Demonstrates classic U-shaped validation error: low degrees underfit (high bias), high degrees overfit (high variance) unless regularized."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Models smooth non-linear relationships while keeping a closed-form convex solution.",
+      "L2 Ridge penalty shrinks exploding coefficients and stabilizes correlated polynomial terms.",
+      "Directly exposes the Bias-Variance tradeoff via degree and lambda."
+    ],
+    "limitations": [
+      "High polynomial degrees extrapolate wildly outside the training domain.",
+      "Combinatorial feature explosion in higher dimensions.",
+      "Requires careful feature scaling before applying L2 regularization."
+    ],
+    "properties": {
+      "timeComplexity": "O(n · d² + d³)",
+      "spaceComplexity": "O(n · d)",
+      "interpretability": "Moderate",
+      "scalingRequired": "Yes (Critical)"
+    },
+    "applications": [
+      "Aerodynamic drag & physical curve fitting",
+      "Yield curve modeling in finance",
+      "Smooth trajectory interpolation"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "poly",
+      "label": "Polynomial Basis Expansion",
+      "latex": "\\hat{y}(x) = w_0 + w_1 x + w_2 x^2 + \\dots + w_d x^d",
+      "description": "Maps scalar x into a d-dimensional polynomial feature vector."
+    },
+    {
+      "id": "ridge",
+      "label": "Ridge (L2) Objective",
+      "latex": "J(\\mathbf{w}) = \\sum_{i=1}^{n}(\\hat{y}_i - y_i)^2 + \\lambda \\sum_{j=1}^{d} w_j^2",
+      "description": "Penalizes large weights by lambda to prevent high-degree overfitting."
+    },
+    {
+      "id": "closedform",
+      "label": "Regularized Normal Equation",
+      "latex": "\\mathbf{w}^* = (\\mathbf{X}^T\\mathbf{X} + \\lambda \\mathbf{I})^{-1}\\mathbf{X}^T\\mathbf{y}",
+      "description": "Exact analytical solution for Ridge Regression."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "degree",
+      "label": "Polynomial Degree (d)",
+      "min": 1,
+      "max": 8,
+      "step": 1,
+      "defaultValue": 3,
+      "unit": "",
+      "description": "Higher degree increases model flexibility and variance."
+    },
+    {
+      "key": "lambda",
+      "label": "L2 Penalty (λ)",
+      "min": 0,
+      "max": 5,
+      "step": 0.1,
+      "defaultValue": 0.2,
+      "unit": "",
+      "description": "Shrinks polynomial weights toward zero to combat overfitting."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 0.5, "y": 1.6 },
+    { "id": 2, "x": 1.2, "y": 2.9 },
+    { "id": 3, "x": 2.0, "y": 3.8 },
+    { "id": 4, "x": 2.9, "y": 3.5 },
+    { "id": 5, "x": 3.7, "y": 2.6 },
+    { "id": 6, "x": 4.6, "y": 2.1 },
+    { "id": 7, "x": 5.5, "y": 2.7 },
+    { "id": 8, "x": 6.4, "y": 4.2 },
+    { "id": 9, "x": 7.3, "y": 6.1 },
+    { "id": 10, "x": 8.2, "y": 7.4 },
+    { "id": 11, "x": 9.0, "y": 8.1 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef fit_poly_ridge(x, y, degree=3, lam=0.2):\n    X = np.vander(x, degree + 1, increasing=True)\n    reg = lam * np.eye(degree + 1)\n    reg[0, 0] = 0.0  # Do not regularize bias\n    w = np.linalg.solve(X.T @ X + reg, X.T @ y)\n    return w\n\nx = np.array([0.5, 1.2, 2.0, 2.9, 3.7, 4.6, 5.5, 6.4, 7.3, 8.2, 9.0])\ny = np.array([1.6, 2.9, 3.8, 3.5, 2.6, 2.1, 2.7, 4.2, 6.1, 7.4, 8.1])\nprint('Weights:', fit_poly_ridge(x, y, degree=3, lam=0.2))",
+    "scikitLearn": "import numpy as np\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import PolynomialFeatures, StandardScaler\nfrom sklearn.linear_model import Ridge\n\nX = np.array([0.5, 1.2, 2.0, 2.9, 3.7, 4.6, 5.5, 6.4, 7.3, 8.2, 9.0]).reshape(-1, 1)\ny = np.array([1.6, 2.9, 3.8, 3.5, 2.6, 2.1, 2.7, 4.2, 6.1, 7.4, 8.1])\n\nmodel = make_pipeline(PolynomialFeatures(3), StandardScaler(), Ridge(alpha=0.2))\nmodel.fit(X, y)\nprint('R2 Score:', model.score(X, y))"
+  }
+}

@@ -1,117 +1,78 @@
-/**
- * Pure client-side Linear Regression (Gradient Descent) math engine.
- * Executes with 0ms network latency so hyperparameter sliders and playback
- * scrubbers update at 60fps.
- */
+const round = (v, d = 4) => Math.round(v * 10 ** d) / 10 ** d;
 
-const round = (val, digits = 4) => {
-  const factor = 10 ** digits;
-  return Math.round(val * factor) / factor;
-};
-
-/**
- * Computes predictions, residuals, MSE, and partial derivatives for a single state.
- */
 export function evaluateLinearState(points, w, b) {
   const n = points.length;
-  if (n === 0) {
-    return {
-      predictions: [],
-      mse: 0,
-      dw: 0,
-      db: 0,
-      r2: 0
-    };
-  }
+  if (!n) return { rows: [], mse: 0, dw: 0, db: 0, r2: 0 };
 
-  let sumSqErr = 0;
+  let sumSq = 0;
   let sumDw = 0;
   let sumDb = 0;
   let sumY = 0;
 
-  const predictions = points.map((pt, idx) => {
+  const rows = points.map((pt, idx) => {
     const yHat = w * pt.x + b;
-    const error = yHat - pt.y;
-    const sqError = error * error;
-
-    sumSqErr += sqError;
-    sumDw += error * pt.x;
-    sumDb += error;
+    const err = yHat - pt.y;
+    const sq = err * err;
+    sumSq += sq;
+    sumDw += err * pt.x;
+    sumDb += err;
     sumY += pt.y;
-
-    return {
-      id: pt.id ?? idx + 1,
-      x: round(pt.x, 3),
-      y: round(pt.y, 3),
-      yHat: round(yHat, 4),
-      error: round(error, 4),
-      sqError: round(sqError, 4)
-    };
+    return [pt.id ?? idx + 1, round(pt.x, 2), round(pt.y, 2), round(yHat, 3), round(err, 3), round(sq, 3)];
   });
 
-  const mse = sumSqErr / n;
+  const mse = sumSq / n;
   const dw = (2 / n) * sumDw;
   const db = (2 / n) * sumDb;
-
   const meanY = sumY / n;
-  let ssTot = 0;
-  for (const pt of points) {
-    ssTot += (pt.y - meanY) ** 2;
-  }
-  const r2 = ssTot > 1e-12 ? 1 - sumSqErr / ssTot : 1;
+  const ssTot = points.reduce((acc, p) => acc + (p.y - meanY) ** 2, 0);
+  const r2 = ssTot > 1e-12 ? 1 - sumSq / ssTot : 1;
 
-  return {
-    predictions,
-    mse: round(mse, 5),
-    dw: round(dw, 5),
-    db: round(db, 5),
-    r2: round(r2, 4)
-  };
+  return { rows, mse: round(mse, 4), dw: round(dw, 4), db: round(db, 4), r2: round(r2, 4) };
 }
 
-/**
- * Generates the complete sequence of gradient descent states from step 0..maxIterations.
- */
-export function runLinearRegressionHistory(points, params = {}) {
-  const learningRate = Number(params.learningRate ?? 0.02);
-  const maxIterations = Math.max(1, Math.round(Number(params.maxIterations ?? 30)));
+export function runLinearRegressionHistory(points = [], params = {}) {
+  const lr = Number(params.learningRate ?? 0.02);
+  const maxIter = Math.max(2, Math.round(Number(params.maxIterations ?? 25)));
+  const manualOverride = params.manualW !== undefined && params.manualB !== undefined;
 
   let w = 0;
   let b = 0;
   const steps = [];
+  const lossCurve = [];
 
-  for (let iter = 0; iter <= maxIterations; iter++) {
-    const evalState = evaluateLinearState(points, w, b);
-    const nextW = w - learningRate * evalState.dw;
-    const nextB = b - learningRate * evalState.db;
+  for (let i = 0; i <= maxIter; i++) {
+    const activeW = manualOverride && i === maxIter ? Number(params.manualW) : w;
+    const activeB = manualOverride && i === maxIter ? Number(params.manualB) : b;
+    const ev = evaluateLinearState(points, activeW, activeB);
+    lossCurve.push({ x: i, y: ev.mse });
 
     steps.push({
-      step: iter,
-      phase: iter === 0 ? 'Initialization' : 'Gradient Step',
-      w: round(w, 4),
-      b: round(b, 4),
-      learningRate,
-      mse: evalState.mse,
-      dw: evalState.dw,
-      db: evalState.db,
-      r2: evalState.r2,
-      nextW: round(nextW, 4),
-      nextB: round(nextB, 4),
-      predictions: evalState.predictions,
-      substitutionLatex: `\\hat{y} = ${round(w, 3)}x + ${round(b, 3)}, \\quad J = ${round(
-        evalState.mse,
-        4
-      )}, \\quad w_{next} = ${round(w, 3)} - ${learningRate}(${round(evalState.dw, 3)}) = ${round(
-        nextW,
-        3
-      )}`
+      step: i,
+      phase: i === 0 ? 'Initialization' : 'Gradient Step',
+      substitutionLatex: `\\hat{y} = ${round(activeW, 3)}x + ${round(activeB, 3)}, \\quad J = ${ev.mse}, \\quad \\nabla_w J = ${ev.dw}`,
+      kpis: [
+        { label: 'Slope (w)', value: round(activeW, 3), tone: 'indigo' },
+        { label: 'Intercept (b)', value: round(activeB, 3), tone: 'indigo' },
+        { label: 'MSE Loss', value: ev.mse, tone: 'rose' },
+        { label: 'R² Fit', value: ev.r2, tone: 'teal' }
+      ],
+      table: {
+        title: `Point Residuals (n = ${points.length})`,
+        headers: ['i', 'x', 'y', 'ŷ', 'ŷ - y', 'SqErr'],
+        rows: ev.rows
+      },
+      chartData: lossCurve.map((pt) => ({ ...pt })),
+      viz: {
+        kind: 'linear-regression',
+        points,
+        w: round(activeW, 4),
+        b: round(activeB, 4)
+      }
     });
 
-    // Guard against divergence if learning rate is extreme on custom points
-    if (!Number.isFinite(nextW) || !Number.isFinite(nextB) || Math.abs(nextW) > 1e5) {
-      break;
-    }
-
+    const nextW = w - lr * ev.dw;
+    const nextB = b - lr * ev.db;
+    if (!Number.isFinite(nextW) || Math.abs(nextW) > 1e4) break;
     w = nextW;
     b = nextB;
   }

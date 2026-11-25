@@ -1,0 +1,85 @@
+{
+  "order": 6,
+  "slug": "decision-tree",
+  "title": "Decision Trees (CART)",
+  "subtitle": "Recursive Orthogonal Splits & Gini Impurity",
+  "category": "supervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Foundational",
+  "summary": "Partition feature space with axis-aligned splits maximizing Gini Impurity reduction.",
+  "evaluationChart": {
+    "type": "bar",
+    "title": "Feature Importance (Gini Gain)",
+    "xLabel": "Feature",
+    "yLabel": "Normalized Importance",
+    "description": "Shows the total normalized Gini impurity reduction contributed by Feature x₁ vs. Feature x₂."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "White-box interpretability: decisions map directly to human-readable if/else rules.",
+      "Requires zero feature scaling or normalization.",
+      "Naturally handles non-linear interactions and mixed data types."
+    ],
+    "limitations": [
+      "High variance: small data perturbations can produce a completely different tree.",
+      "Prone to overfitting deep branches without max_depth pruning.",
+      "Axis-aligned splits struggle with diagonal linear boundaries."
+    ],
+    "properties": {
+      "timeComplexity": "O(n · d · log n)",
+      "spaceComplexity": "O(nodes)",
+      "interpretability": "Very High (Rules)",
+      "scalingRequired": "No"
+    },
+    "applications": [
+      "Clinical triage & rule-based diagnostics",
+      "Credit approval decision workflows",
+      "Base learner for Random Forests & XGBoost"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "gini",
+      "label": "Gini Impurity",
+      "latex": "G(S) = 1 - \\sum_{c=1}^{C} p_c^2",
+      "description": "0 indicates a pure node; 0.5 is maximum impurity for balanced binary classes."
+    },
+    {
+      "id": "gain",
+      "label": "Information / Gini Gain",
+      "latex": "\\Delta G = G(S) - \\left(\\frac{|S_L|}{|S|}G(S_L) + \\frac{|S_R|}{|S|}G(S_R)\\right)",
+      "description": "Selects the feature and threshold maximizing purity gain."
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "maxDepth",
+      "label": "Max Tree Depth",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "defaultValue": 2,
+      "unit": "lvls",
+      "description": "Maximum depth of recursive orthogonal splits."
+    }
+  ],
+  "defaultDataset": [
+    { "id": 1, "x": 1.5, "y": 2.0, "label": 0 },
+    { "id": 2, "x": 2.2, "y": 3.1, "label": 0 },
+    { "id": 3, "x": 2.8, "y": 1.4, "label": 0 },
+    { "id": 4, "x": 3.3, "y": 4.2, "label": 0 },
+    { "id": 5, "x": 1.9, "y": 6.8, "label": 1 },
+    { "id": 6, "x": 2.7, "y": 7.5, "label": 1 },
+    { "id": 7, "x": 6.2, "y": 2.5, "label": 1 },
+    { "id": 8, "x": 7.4, "y": 3.2, "label": 1 },
+    { "id": 9, "x": 8.1, "y": 1.9, "label": 1 },
+    { "id": 10, "x": 6.8, "y": 6.9, "label": 0 },
+    { "id": 11, "x": 7.8, "y": 7.6, "label": 0 },
+    { "id": 12, "x": 8.5, "y": 6.4, "label": 0 }
+  ],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef gini(y):\n    if len(y) == 0: return 0.0\n    _, counts = np.unique(y, return_counts=True)\n    p = counts / len(y)\n    return 1.0 - np.sum(p ** 2)\n\nprint('Impurity of [0,0,1,1]:', gini(np.array([0, 0, 1, 1])))",
+    "scikitLearn": "from sklearn.tree import DecisionTreeClassifier, export_text\nimport numpy as np\n\nX = np.array([[1.5,2.0],[1.9,6.8],[6.2,2.5],[6.8,6.9]])\ny = np.array([0, 1, 1, 0])\n\ntree = DecisionTreeClassifier(max_depth=2, random_state=42).fit(X, y)\nprint(export_text(tree, feature_names=['x1', 'x2']))\nprint('Feature importances:', tree.feature_importances_)"
+  }
+}
