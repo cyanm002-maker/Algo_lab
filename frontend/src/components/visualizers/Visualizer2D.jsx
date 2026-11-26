@@ -1,5 +1,6 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import { motion } from 'framer-motion';
 import { MousePointerClick, RotateCcw } from 'lucide-react';
 import { CLUSTER_COLORS } from '../../engines/kMeansMath';
 
@@ -15,6 +16,8 @@ export default function Visualizer2D({
   hasCustomPoints
 }) {
   const svgRef = useRef(null);
+  const [hoveredPt, setHoveredPt] = useState(null);
+
   const viz = stepData?.viz || {};
   const kind = viz.kind || 'linear-regression';
   const points = viz.points || [];
@@ -56,7 +59,7 @@ export default function Visualizer2D({
     kind === 'knn-2d' || kind === 'gaussian-nb'
       ? 'Click anywhere in the plot to move the query point (q)'
       : kind === 'linear-regression'
-      ? 'Click anywhere in the plot to add a custom data point'
+      ? 'Click anywhere on the grid to plot new points · Watch the line rotate smoothly'
       : 'Interactive 2D spatial coordinate space';
 
   return (
@@ -78,7 +81,7 @@ export default function Visualizer2D({
         )}
       </div>
 
-      <div className="w-full bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div className="relative w-full bg-white border border-slate-200 rounded-xl overflow-hidden">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -92,7 +95,6 @@ export default function Visualizer2D({
           </defs>
 
           <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-            {/* Light Gridlines */}
             {xTicks.map((t) => (
               <line
                 key={`gx-${t}`}
@@ -116,7 +118,6 @@ export default function Visualizer2D({
               />
             ))}
 
-            {/* Axes */}
             <line x1={0} x2={innerWidth} y1={innerHeight} y2={innerHeight} stroke="#CBD5E1" />
             <line x1={0} x2={0} y1={0} y2={innerHeight} stroke="#CBD5E1" />
 
@@ -148,7 +149,6 @@ export default function Visualizer2D({
             ))}
 
             <g clipPath="url(#light-plot-clip)">
-              {/* Random Forest Probability Heatmap */}
               {kind === 'random-forest' &&
                 (viz.grid || []).map((cell, idx) => (
                   <rect
@@ -162,7 +162,6 @@ export default function Visualizer2D({
                   />
                 ))}
 
-              {/* Decision Tree Regions & Splits */}
               {kind === 'decision-tree' &&
                 (viz.regions || []).map((reg, idx) => (
                   <rect
@@ -178,8 +177,10 @@ export default function Visualizer2D({
               {kind === 'decision-tree' &&
                 (viz.splits || []).map((sp, idx) =>
                   sp.feature === 'x' ? (
-                    <line
+                    <motion.line
                       key={`dt-s-${idx}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       x1={xScale(sp.threshold)}
                       x2={xScale(sp.threshold)}
                       y1={yScale(sp.bounds.yMin)}
@@ -189,8 +190,10 @@ export default function Visualizer2D({
                       strokeDasharray="4 3"
                     />
                   ) : (
-                    <line
+                    <motion.line
                       key={`dt-s-${idx}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       x1={xScale(sp.bounds.xMin)}
                       x2={xScale(sp.bounds.xMax)}
                       y1={yScale(sp.threshold)}
@@ -202,7 +205,6 @@ export default function Visualizer2D({
                   )
                 )}
 
-              {/* Isolation Forest Axis Splits */}
               {kind === 'isolation-forest' &&
                 (viz.splits || []).map((sp, idx) =>
                   sp.feat === 'x' ? (
@@ -230,34 +232,39 @@ export default function Visualizer2D({
                   )
                 )}
 
-              {/* Linear Regression Residuals & Line */}
+              {/* Animated Linear Regression Residuals & Rotating Best-Fit Line */}
               {kind === 'linear-regression' && (
                 <>
                   {points.map((pt, idx) => (
-                    <line
-                      key={`res-${idx}`}
-                      x1={xScale(pt.x)}
-                      x2={xScale(pt.x)}
-                      y1={yScale(pt.y)}
-                      y2={yScale(viz.w * pt.x + viz.b)}
+                    <motion.line
+                      key={`res-${pt.id ?? idx}`}
+                      animate={{
+                        x1: xScale(pt.x),
+                        x2: xScale(pt.x),
+                        y1: yScale(pt.y),
+                        y2: yScale(viz.w * pt.x + viz.b)
+                      }}
+                      transition={{ type: 'spring', stiffness: 180, damping: 24 }}
                       stroke="#E11D48"
-                      strokeWidth={1.5}
-                      strokeDasharray="3 3"
-                      opacity={0.75}
+                      strokeWidth={1.6}
+                      strokeDasharray="4 3"
+                      opacity={0.78}
                     />
                   ))}
-                  <line
-                    x1={xScale(0)}
-                    y1={yScale(viz.b)}
-                    x2={xScale(10)}
-                    y2={yScale(viz.w * 10 + viz.b)}
+                  <motion.line
+                    animate={{
+                      x1: xScale(0),
+                      y1: yScale(viz.b),
+                      x2: xScale(10),
+                      y2: yScale(viz.w * 10 + viz.b)
+                    }}
+                    transition={{ type: 'spring', stiffness: 160, damping: 22 }}
                     stroke="#4F46E5"
-                    strokeWidth={2.75}
+                    strokeWidth={3}
                   />
                 </>
               )}
 
-              {/* Polynomial Ridge Curve */}
               {kind === 'polynomial-ridge' && viz.curvePoints?.length > 1 && (
                 <path
                   d={d3
@@ -271,18 +278,20 @@ export default function Visualizer2D({
                 />
               )}
 
-              {/* Logistic Regression Boundary */}
               {kind === 'logistic-regression' && Math.abs(viz.w2) > 1e-4 && (
                 (() => {
                   const logit = Math.log(viz.threshold / (1 - viz.threshold));
                   const yAt0 = (logit - viz.b - viz.w1 * 0) / viz.w2;
                   const yAt10 = (logit - viz.b - viz.w1 * 10) / viz.w2;
                   return (
-                    <line
-                      x1={xScale(0)}
-                      y1={yScale(yAt0)}
-                      x2={xScale(10)}
-                      y2={yScale(yAt10)}
+                    <motion.line
+                      animate={{
+                        x1: xScale(0),
+                        y1: yScale(yAt0),
+                        x2: xScale(10),
+                        y2: yScale(yAt10)
+                      }}
+                      transition={{ type: 'spring', stiffness: 160, damping: 22 }}
                       stroke="#0F172A"
                       strokeWidth={2.2}
                       strokeDasharray="6 4"
@@ -291,13 +300,15 @@ export default function Visualizer2D({
                 })()
               )}
 
-              {/* KNN Neighborhood Circle & Lines */}
               {kind === 'knn-2d' && viz.query && (
                 <>
-                  <circle
-                    cx={xScale(viz.query.x)}
-                    cy={yScale(viz.query.y)}
-                    r={Math.abs(xScale(viz.radius) - xScale(0))}
+                  <motion.circle
+                    animate={{
+                      cx: xScale(viz.query.x),
+                      cy: yScale(viz.query.y),
+                      r: Math.abs(xScale(viz.radius) - xScale(0))
+                    }}
+                    transition={{ type: 'spring', stiffness: 180, damping: 22 }}
                     fill="#4F46E5"
                     fillOpacity={0.07}
                     stroke="#4F46E5"
@@ -318,7 +329,6 @@ export default function Visualizer2D({
                 </>
               )}
 
-              {/* Gaussian Naive Bayes Contour Ellipses */}
               {kind === 'gaussian-nb' &&
                 (viz.classes || []).map((cls) =>
                   [1, 2].map((sigma) => (
@@ -337,7 +347,6 @@ export default function Visualizer2D({
                   ))
                 )}
 
-              {/* DBSCAN Epsilon Circles */}
               {kind === 'dbscan' &&
                 points.map((pt, idx) =>
                   viz.roles?.[idx] === 'core' ? (
@@ -355,7 +364,6 @@ export default function Visualizer2D({
                   ) : null
                 )}
 
-              {/* GMM Covariance Ellipses */}
               {kind === 'gmm-em' &&
                 (viz.ellipses || []).map((el, idx) => {
                   const color = CLUSTER_COLORS[idx % CLUSTER_COLORS.length];
@@ -375,7 +383,6 @@ export default function Visualizer2D({
                   );
                 })}
 
-              {/* Data Points */}
               {points.map((pt, idx) => {
                 let fill = '#4F46E5';
                 if (kind === 'isolation-forest') {
@@ -394,19 +401,22 @@ export default function Visualizer2D({
                 }
 
                 return (
-                  <circle
+                  <motion.circle
                     key={`pt-${pt.id ?? idx}`}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
                     cx={xScale(pt.x)}
                     cy={yScale(pt.y)}
-                    r={5.5}
+                    r={hoveredPt?.id === (pt.id ?? idx) ? 7.5 : 5.5}
                     fill={fill}
                     stroke="#FFFFFF"
                     strokeWidth={1.75}
+                    onMouseEnter={() => setHoveredPt({ id: pt.id ?? idx, x: pt.x, y: pt.y })}
+                    onMouseLeave={() => setHoveredPt(null)}
                   />
                 );
               })}
 
-              {/* Query Point for KNN / GNB */}
               {(kind === 'knn-2d' || kind === 'gaussian-nb') && viz.query && (
                 <g transform={`translate(${xScale(viz.query.x)},${yScale(viz.query.y)})`}>
                   <circle r={7.5} fill="#D97706" stroke="#FFFFFF" strokeWidth={2} />
@@ -418,6 +428,12 @@ export default function Visualizer2D({
             </g>
           </g>
         </svg>
+
+        {hoveredPt && (
+          <div className="absolute top-3 right-3 bg-white/95 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-[#0F172A] shadow-md pointer-events-none">
+            Pt #{hoveredPt.id}: ({hoveredPt.x}, {hoveredPt.y})
+          </div>
+        )}
       </div>
     </div>
   );

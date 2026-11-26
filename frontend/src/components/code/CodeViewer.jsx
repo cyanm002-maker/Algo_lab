@@ -7,17 +7,20 @@ import { Code2, Copy, Check } from 'lucide-react';
 SyntaxHighlighter.registerLanguage('python', python);
 
 const TABS = [
-  { key: 'purePython', label: 'Pure Python' },
-  { key: 'fromScratch', label: 'NumPy Vectorized' },
-  { key: 'scikitLearn', label: 'Scikit-Learn' },
-  { key: 'pytorch', label: 'PyTorch' }
+  { key: 'fromScratch', label: 'From Scratch (NumPy)' },
+  { key: 'production', label: 'Production (Scikit-Learn / PyTorch)' },
+  { key: 'dataPrep', label: 'Data Prep (Pandas)' }
 ];
 
 export default function CodeViewer({ codeTemplates }) {
   const [activeTab, setActiveTab] = useState('fromScratch');
   const [copied, setCopied] = useState(false);
 
-  const code = codeTemplates?.[activeTab] || codeTemplates?.fromScratch || '';
+  const code =
+    codeTemplates?.[activeTab] ||
+    codeTemplates?.fromScratch ||
+    codeTemplates?.scikitLearn ||
+    '';
 
   const handleCopy = async () => {
     if (!code) return;
@@ -36,7 +39,7 @@ export default function CodeViewer({ codeTemplates }) {
         <div className="flex items-center gap-2">
           <Code2 className="w-4 h-4 text-[#2563EB]" />
           <h2 className="text-sm font-bold text-[#0F172A]">
-            Multi-Stack Python Implementation
+            Under-the-Hood Python Code
           </h2>
         </div>
 

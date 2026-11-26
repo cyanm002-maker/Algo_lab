@@ -35,22 +35,64 @@ function enrichLesson(lesson, meta) {
   const slug = lesson.slug || meta?.slug;
   const title = lesson.title || meta?.title;
   const code = lesson.codeTemplates || {};
+  const intuition =
+    lesson.intuition ||
+    lesson.theory?.intuition ||
+    `${title} works by iteratively refining internal parameters against an objective until patterns in the data become clearly separated or predicted.`;
+
+  const howItWorks =
+    lesson.howItWorks || [
+      {
+        step: 1,
+        title: 'Initialize State & Hyperparameters',
+        detail: `Set initial model parameters and hyperparameters for ${title}.`
+      },
+      {
+        step: 2,
+        title: 'Forward Pass / Distance Computation',
+        detail: `Evaluate predictions, distances, or projections across the input samples.`
+      },
+      {
+        step: 3,
+        title: 'Measure Objective / Error',
+        detail: `Compute the loss or structural score quantifying current model fit.`
+      },
+      {
+        step: 4,
+        title: 'Update Parameters',
+        detail: `Adjust weights, centroids, or splits to improve the objective.`
+      },
+      {
+        step: 5,
+        title: 'Converge & Evaluate',
+        detail: `Verify convergence and inspect diagnostic curves on held-out data.`
+      }
+    ];
+
   return {
     ...meta,
     ...lesson,
     visualArchetype: lesson.visualArchetype || meta?.visualArchetype || 'SpatialRegressionClassifier',
     domainId: lesson.domainId || meta?.domainId || 'supervised-classification',
     domainTitle: lesson.domainTitle || meta?.domainTitle || 'Core Curriculum',
+    intuition,
+    howItWorks,
     pythonBridge: lesson.pythonBridge || {
-      pandas: `df = pd.read_csv('dataset.csv'); X = df.dropna()`,
-      numpy: `X_np = X.to_numpy(dtype=np.float64) # Vectorized ${title} matrix ops`,
+      pandas: `df = pd.read_csv('dataset.csv').dropna()`,
+      numpy: `X_np = df.to_numpy(dtype=np.float64) # Vectorized ${title} math`,
       pytorch: `X_t = torch.tensor(X_np, dtype=torch.float32, requires_grad=True)`
     },
     codeTemplates: {
-      purePython: code.purePython || `# Pure Python reference for ${title}\ndata = [1.0, 2.0, 3.0, 4.0]\nmean = sum(data) / len(data)\nprint('${title} mean:', mean)`,
-      fromScratch: code.fromScratch || `import numpy as np\n\n# NumPy Vectorized ${title}\nX = np.random.randn(20, 3)\nprint('${slug} shape:', X.shape)`,
-      scikitLearn: code.scikitLearn || `from sklearn.preprocessing import StandardScaler\nimport numpy as np\n\nX = np.random.randn(20, 3)\nX_scaled = StandardScaler().fit_transform(X)\nprint('Ready for ${title}:', X_scaled.shape)`,
-      pytorch: code.pytorch || `import torch\nimport torch.nn as nn\n\nX = torch.randn(20, 3, requires_grad=True)\nlayer = nn.Linear(3, 1)\nloss = layer(X).pow(2).mean()\nloss.backward()\nprint('${title} grad norm:', X.grad.norm().item())`
+      fromScratch:
+        code.fromScratch ||
+        `import numpy as np\n\n# From Scratch (NumPy) — ${title}\nX = np.random.randn(20, 3)\nprint('${slug} shape:', X.shape)`,
+      production:
+        code.production ||
+        code.scikitLearn ||
+        `from sklearn.preprocessing import StandardScaler\nimport numpy as np\n\nX = np.random.randn(20, 3)\nX_scaled = StandardScaler().fit_transform(X)\nprint('Production pipeline ready for ${title}:', X_scaled.shape)`,
+      dataPrep:
+        code.dataPrep ||
+        `import pandas as pd\n\ndf = pd.DataFrame({'f1': [1.0, 2.0, 3.0], 'f2': [4.0, 5.0, 6.0]})\ndf = df.fillna(df.median())\nprint(df.head())`
     }
   };
 }
@@ -88,7 +130,7 @@ function buildFallbackLesson(meta) {
         properties: {
           timeComplexity: is3D ? 'O(T · n · d)' : 'O(n · log n)',
           spaceComplexity: 'O(n · d)',
-          hardware: is3D ? 'CPU / GPU' : 'CPU Vectorized',
+          interpretability: 'Moderate',
           scalingRequired: 'Recommended'
         },
         applications: [meta.domainTitle, 'Production ML Pipelines', 'Research Prototyping']

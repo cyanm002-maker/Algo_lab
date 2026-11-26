@@ -2,29 +2,60 @@
   "order": 1,
   "slug": "linear-regression",
   "title": "Linear Regression",
-  "subtitle": "Gradient Descent & Ordinary Least Squares",
+  "subtitle": "Gradient Descent & Residual Error Minimization",
+  "domainId": "supervised-regression",
+  "domainTitle": "Supervised Regression & Optimization",
   "category": "supervised",
   "visualizationType": "2d",
   "supports2D3DToggle": false,
   "difficulty": "Foundational",
-  "summary": "Fit y = wx + b to labeled 2D data by minimizing Mean Squared Error via gradient descent.",
+  "visualArchetype": "SpatialRegressionClassifier",
+  "summary": "Click on the 2D canvas to plot points and watch the best-fit line rotate into position as vertical residual error lines shrink.",
+  "intuition": "Imagine placing pins on a wooden board at each data point and tying vertical rubber bands from every pin to a rigid metal rod. The rubber bands pull the rod from all directions: points far above pull it up, and points below pull it down. Where the rod naturally settles so that the total tension (squared stretch of all rubber bands) is minimized—that exact resting position is your Linear Regression line!",
+  "howItWorks": [
+    {
+      "step": 1,
+      "title": "Initialize Slope (w) & Intercept (b)",
+      "detail": "Start with a flat baseline line y = 0x + 0 across the 2D coordinate grid."
+    },
+    {
+      "step": 2,
+      "title": "Compute Predictions & Vertical Residuals",
+      "detail": "For every point (xᵢ, yᵢ), calculate ŷᵢ = w·xᵢ + b and measure the vertical dashed residual error (ŷᵢ - yᵢ)."
+    },
+    {
+      "step": 3,
+      "title": "Calculate Mean Squared Error (MSE)",
+      "detail": "Square each residual so positive and negative errors don't cancel out, then average them: J = (1/n) Σ(ŷᵢ - yᵢ)²."
+    },
+    {
+      "step": 4,
+      "title": "Compute Partial Derivatives & Tilt Line",
+      "detail": "Compute ∂J/∂w and ∂J/∂b to know which way to rotate the slope w and shift the intercept b."
+    },
+    {
+      "step": 5,
+      "title": "Converge to Minimum MSE",
+      "detail": "Repeat the update w ← w - α·∂J/∂w, b ← b - α·∂J/∂b until the residual lines shrink to their minimum."
+    }
+  ],
   "evaluationChart": {
     "type": "line",
     "title": "MSE Loss vs. Epoch Convergence",
     "xLabel": "Epoch",
     "yLabel": "MSE Loss J(w, b)",
-    "description": "Tracks how Mean Squared Error decays monotonically as gradient descent approaches the global minimum."
+    "description": "Tracks how Mean Squared Error decays as the line rotates toward the optimal fit."
   },
   "prosAndCons": {
     "advantages": [
-      "Highly interpretable: weights directly quantify feature impact on the target.",
-      "Fast training and O(1) inference time with a convex loss surface (guaranteed global minimum).",
-      "Serves as the foundational baseline for regression benchmarks."
+      "Crystal-clear interpretability: slope w directly measures Δy per unit Δx.",
+      "Convex MSE objective guarantees a single global optimum with zero local minima.",
+      "Fast O(1) inference and lightweight memory footprint."
     ],
     "limitations": [
-      "Assumes a strict linear relationship; underfits curved or interactive patterns.",
-      "Sensitive to extreme outliers due to squared residual penalties.",
-      "Multicollinearity between features can destabilize parameter estimates."
+      "Assumes a linear relationship; underfits curved or parabolic trends.",
+      "Sensitive to extreme outliers because residuals are squared.",
+      "Multicollinearity across correlated features destabilizes weight estimates."
     ],
     "properties": {
       "timeComplexity": "O(T · n · d)",
@@ -35,7 +66,7 @@
     "applications": [
       "Real estate price & demand forecasting",
       "Sensor calibration & trend estimation",
-      "Econometric elasticity modeling"
+      "Baseline tabular regression modeling"
     ]
   },
   "formulas": [
@@ -43,11 +74,11 @@
       "id": "hypothesis",
       "label": "Linear Hypothesis",
       "latex": "\\hat{y}_i = w \\cdot x_i + b",
-      "description": "Predicts continuous target y_hat using slope w and bias intercept b."
+      "description": "Predicts continuous target ŷᵢ using slope w and intercept b."
     },
     {
       "id": "mse",
-      "label": "Mean Squared Error (Loss)",
+      "label": "Mean Squared Error (MSE)",
       "latex": "J(w, b) = \\frac{1}{n} \\sum_{i=1}^{n} (\\hat{y}_i - y_i)^2",
       "description": "Average squared vertical residual across all n observations."
     },
@@ -55,29 +86,29 @@
       "id": "update",
       "label": "Gradient Descent Update",
       "latex": "w \\leftarrow w - \\alpha \\frac{2}{n}\\sum_{i=1}^{n}(\\hat{y}_i - y_i)x_i, \\quad b \\leftarrow b - \\alpha \\frac{2}{n}\\sum_{i=1}^{n}(\\hat{y}_i - y_i)",
-      "description": "Steps opposite to the gradient scaled by learning rate alpha."
+      "description": "Updates slope and intercept opposite to the gradient."
     }
   ],
   "hyperparameters": [
     {
       "key": "learningRate",
       "label": "Learning Rate (α)",
-      "min": 0.002,
+      "min": 0.004,
       "max": 0.05,
       "step": 0.002,
       "defaultValue": 0.02,
       "unit": "",
-      "description": "Step size multiplier for gradient updates."
+      "description": "Controls how fast the line rotates per step."
     },
     {
       "key": "maxIterations",
       "label": "Epochs (T)",
       "min": 5,
-      "max": 60,
+      "max": 40,
       "step": 1,
-      "defaultValue": 25,
+      "defaultValue": 20,
       "unit": "steps",
-      "description": "Total gradient descent iterations."
+      "description": "Total gradient descent steps."
     }
   ],
   "defaultDataset": [
@@ -93,7 +124,8 @@
     { "id": 10, "x": 8.4, "y": 9.1 }
   ],
   "codeTemplates": {
-    "fromScratch": "import numpy as np\n\nX = np.array([1.0, 1.8, 2.5, 3.2, 4.1, 5.0, 5.8, 6.7, 7.5, 8.4])\ny = np.array([2.1, 2.9, 3.4, 4.5, 4.8, 5.9, 6.2, 7.5, 7.9, 9.1])\n\ndef fit_linear_regression(X, y, lr=0.02, epochs=25):\n    w, b, n = 0.0, 0.0, len(X)\n    for _ in range(epochs):\n        err = (w * X + b) - y\n        w -= lr * (2 / n) * np.dot(err, X)\n        b -= lr * (2 / n) * np.sum(err)\n    return w, b\n\nw, b = fit_linear_regression(X, y)\nprint(f'y = {w:.4f}x + {b:.4f}')",
-    "scikitLearn": "import numpy as np\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import mean_squared_error\n\nX = np.array([1.0, 1.8, 2.5, 3.2, 4.1, 5.0, 5.8, 6.7, 7.5, 8.4]).reshape(-1, 1)\ny = np.array([2.1, 2.9, 3.4, 4.5, 4.8, 5.9, 6.2, 7.5, 7.9, 9.1])\n\nmodel = LinearRegression().fit(X, y)\nprint(f'y = {model.coef_[0]:.4f}x + {model.intercept_:.4f}')\nprint(f'MSE: {mean_squared_error(y, model.predict(X)):.4f}')"
+    "fromScratch": "import numpy as np\n\nX = np.array([1.0, 1.8, 2.5, 3.2, 4.1, 5.0, 5.8, 6.7, 7.5, 8.4])\ny = np.array([2.1, 2.9, 3.4, 4.5, 4.8, 5.9, 6.2, 7.5, 7.9, 9.1])\n\nw, b, lr, n = 0.0, 0.0, 0.02, len(X)\nfor epoch in range(20):\n    y_hat = w * X + b\n    err = y_hat - y\n    dw = (2 / n) * np.dot(err, X)\n    db = (2 / n) * np.sum(err)\n    w -= lr * dw\n    b -= lr * db\nprint(f'Fitted: y = {w:.4f}x + {b:.4f}, MSE = {np.mean(err**2):.4f}')",
+    "production": "import numpy as np\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import mean_squared_error\n\nX = np.array([1.0, 1.8, 2.5, 3.2, 4.1, 5.0, 5.8, 6.7, 7.5, 8.4]).reshape(-1, 1)\ny = np.array([2.1, 2.9, 3.4, 4.5, 4.8, 5.9, 6.2, 7.5, 7.9, 9.1])\n\nmodel = LinearRegression().fit(X, y)\nprint(f'y = {model.coef_[0]:.4f}x + {model.intercept_:.4f}')\nprint('MSE:', mean_squared_error(y, model.predict(X)))",
+    "dataPrep": "import pandas as pd\nfrom sklearn.model_selection import train_test_split\n\ndf = pd.DataFrame({'x': [1.0, 1.8, 2.5, 3.2, 4.1, 5.0], 'y': [2.1, 2.9, 3.4, 4.5, 4.8, 5.9]})\ndf = df.dropna()\nX_train, X_test, y_train, y_test = train_test_split(df[['x']], df['y'], test_size=0.2, random_state=42)\nprint('Train shape:', X_train.shape, 'Test shape:', X_test.shape)"
   }
 }

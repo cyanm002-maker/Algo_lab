@@ -22,7 +22,7 @@ function mulberry32(seed) {
   };
 }
 
-export function buildKMeansDataset(seedPoints = [], pointCount = 120) {
+export function buildKMeansDataset(seedPoints = [], pointCount = 40) {
   if (!Array.isArray(seedPoints) || seedPoints.length === 0) return [];
   const targetCount = Math.max(seedPoints.length, Math.round(pointCount));
   const points = seedPoints.map((pt, idx) => ({
@@ -59,9 +59,9 @@ function runSingleKMeans(points, k, maxIterations) {
     const pt = points[(i * step) % points.length];
     return {
       clusterId: i,
-      x: round(pt.x + (i % 2 === 0 ? 0.35 : -0.35), 3),
-      y: round(pt.y + (i % 3 === 0 ? -0.3 : 0.3), 3),
-      z: round(pt.z + (i % 2 === 0 ? -0.25 : 0.25), 3)
+      x: round(pt.x + (i % 2 === 0 ? 0.65 : -0.65), 3),
+      y: round(pt.y + (i % 3 === 0 ? -0.55 : 0.55), 3),
+      z: round(pt.z + (i % 2 === 0 ? -0.5 : 0.5), 3)
     };
   });
 
@@ -98,28 +98,24 @@ function runSingleKMeans(points, k, maxIterations) {
 
 export function runKMeansHistory(seedPoints, params = {}) {
   const k = Math.min(6, Math.max(2, Math.round(Number(params.k ?? 3))));
-  const pointCount = Math.round(Number(params.pointCount ?? 120));
-  const maxIterations = Math.max(1, Math.round(Number(params.maxIterations ?? 10)));
+  const pointCount = Math.round(Number(params.pointCount ?? 40));
+  const maxIterations = Math.max(1, Math.round(Number(params.maxIterations ?? 8)));
 
   const points = buildKMeansDataset(seedPoints, pointCount);
   if (!points.length) return [];
 
-  // Elbow curve for K = 1..6
   const elbowCurve = [1, 2, 3, 4, 5, 6].map((kv) => ({
     x: kv,
     y: runSingleKMeans(points, kv, 8)
   }));
 
-  const step = Math.max(1, Math.floor(points.length / k));
-  let centroids = Array.from({ length: k }, (_, i) => {
-    const pt = points[(i * step) % points.length];
-    return {
-      clusterId: i,
-      x: round(pt.x + (i % 2 === 0 ? 0.35 : -0.35), 3),
-      y: round(pt.y + (i % 3 === 0 ? -0.3 : 0.3), 3),
-      z: round(pt.z + (i % 2 === 0 ? -0.25 : 0.25), 3)
-    };
-  });
+  // Spread initial centroids offset from clusters so gliding animation is clearly visible
+  let centroids = Array.from({ length: k }, (_, i) => ({
+    clusterId: i,
+    x: round(Math.cos((i * 2 * Math.PI) / k) * 2.2, 3),
+    y: round(Math.sin((i * 2 * Math.PI) / k) * 2.2, 3),
+    z: round((i % 2 === 0 ? 1 : -1) * 0.9, 3)
+  }));
 
   const steps = [];
   for (let iter = 0; iter <= maxIterations; iter++) {
@@ -127,6 +123,7 @@ export function runKMeansHistory(seedPoints, params = {}) {
     const counts = Array(k).fill(0);
     const sums = Array.from({ length: k }, () => ({ x: 0, y: 0, z: 0 }));
     const assignments = new Int16Array(points.length);
+    const pointDistances = new Float32Array(points.length);
     const sampleRows = [];
 
     for (let i = 0; i < points.length; i++) {
@@ -143,6 +140,7 @@ export function runKMeansHistory(seedPoints, params = {}) {
         }
       }
       assignments[i] = bestC;
+      pointDistances[i] = round(bestD, 3);
       inertia += bestD * bestD;
       counts[bestC]++;
       sums[bestC].x += pt.x;
@@ -181,15 +179,15 @@ export function runKMeansHistory(seedPoints, params = {}) {
 
     steps.push({
       step: iter,
-      phase: iter === 0 ? 'Initial Centroids' : converged ? 'Converged' : 'Assign & Update',
+      phase: iter === 0 ? 'Initial Centroids' : converged ? 'Converged' : 'Assign & Glide',
       substitutionLatex: `J = \\sum_{k=1}^{${k}}\\sum_{\\mathbf{x}_i\\in C_k}\\|\\mathbf{x}_i-\\boldsymbol{\\mu}_k\\|^2 = ${round(
         inertia,
         2
-      )}, \\quad \\Delta\\mu_{\\max} = ${round(maxShift, 4)}`,
+      )}, \\quad \\Delta\\mu_{\\max} = ${round(maxShift, 3)}`,
       kpis: [
         { label: 'Clusters (K)', value: k, tone: 'indigo' },
         { label: 'Inertia (WCSS)', value: round(inertia, 2), tone: 'amber' },
-        { label: 'Max Shift', value: round(maxShift, 4), tone: 'teal' },
+        { label: 'Max Shift', value: round(maxShift, 3), tone: 'teal' },
         { label: 'Points', value: points.length, tone: 'slate' }
       ],
       table: {
@@ -202,6 +200,7 @@ export function runKMeansHistory(seedPoints, params = {}) {
         kind: 'kmeans-3d',
         points,
         assignments: Array.from(assignments),
+        pointDistances: Array.from(pointDistances),
         centroids: snapCentroids
       }
     });

@@ -1,0 +1,113 @@
+{
+  "slug": "gradient-descent-batch-gd",
+  "title": "Gradient Descent (3D Loss Surface)",
+  "subtitle": "First-Order Optimization on Convex & Non-Convex Landscapes",
+  "domainId": "supervised-regression",
+  "domainTitle": "Supervised Regression & Optimization",
+  "category": "supervised",
+  "visualizationType": "3d",
+  "supports2D3DToggle": false,
+  "difficulty": "Foundational",
+  "visualArchetype": "LossOptimization3D",
+  "summary": "Roll down a 3D loss surface J(w1, w2) along the negative gradient; compare smooth convergence at alpha=0.1 vs. wild bouncing at alpha=0.9.",
+  "intuition": "Imagine standing blindfolded on a foggy mountain valley and wanting to reach the lowest cabin at the bottom. You cannot see the whole terrain, so you feel the steepness of the ground right under your boots and take a step downhill. If your stride (learning rate α) is measured and steady (α = 0.1), you walk smoothly to the valley floor. If you leap wildly (α = 0.9), you overshoot the bottom and bounce back and forth up the opposite canyon walls!",
+  "howItWorks": [
+    {
+      "step": 1,
+      "title": "Initialize Parameters (w₁, w₂)",
+      "detail": "Pick a starting coordinate on the 3D loss surface, e.g., (w₁ = 2.6, w₂ = -2.2), where the objective J(w₁, w₂) is high."
+    },
+    {
+      "step": 2,
+      "title": "Evaluate the Gradient Vector ∇J",
+      "detail": "Compute the partial derivatives [∂J/∂w₁, ∂J/∂w₂]. This vector points in the direction of steepest uphill ascent."
+    },
+    {
+      "step": 3,
+      "title": "Scale by Learning Rate (α)",
+      "detail": "Multiply the negative gradient by α. Small α (0.1) takes controlled downhill steps; large α (0.9) risks overshooting the valley floor."
+    },
+    {
+      "step": 4,
+      "title": "Update Parameters",
+      "detail": "Move the sphere to w_new = w_old - α · ∇J(w_old) and record the new loss value."
+    },
+    {
+      "step": 5,
+      "title": "Repeat Until Convergence",
+      "detail": "Continue stepping until ||∇J|| approaches 0 (the flat bottom of the bowl) or maximum iterations are reached."
+    }
+  ],
+  "evaluationChart": {
+    "type": "line",
+    "title": "Loss J(w₁, w₂) vs. Iteration",
+    "xLabel": "Step",
+    "yLabel": "Loss J(w)",
+    "description": "Smooth monotonic decay at α = 0.1 vs. jagged oscillation or divergence at α = 0.9."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Simple O(d) per-step update that scales to billions of neural network parameters.",
+      "Guaranteed to reach the global minimum on convex objectives like Linear/Logistic Regression.",
+      "Forms the core optimization engine behind SGD, Momentum, Adam, and LLM pretraining."
+    ],
+    "limitations": [
+      "Highly sensitive to learning rate α: too small stalls, too large oscillates or diverges.",
+      "Can get trapped in local minima or slow down on flat saddle points in deep networks.",
+      "Unscaled features create elongated ravines that cause zig-zagging updates."
+    ],
+    "properties": {
+      "timeComplexity": "O(T · n · d)",
+      "spaceComplexity": "O(d)",
+      "interpretability": "High (Vector Field)",
+      "scalingRequired": "Yes (Essential)"
+    },
+    "applications": [
+      "Training Linear, Logistic, and Deep Neural Networks",
+      "Fine-tuning Transformers & Diffusion models",
+      "Convex portfolio & control optimization"
+    ]
+  },
+  "formulas": [
+    {
+      "id": "surface",
+      "label": "3D Quadratic Loss Surface",
+      "latex": "J(w_1, w_2) = \\frac{1}{2}\\left(w_1^2 + 1.8\\,w_2^2\\right)",
+      "description": "Elliptical convex bowl with steeper curvature along w₂ than w₁."
+    },
+    {
+      "id": "grad",
+      "label": "Gradient Descent Update Rule",
+      "latex": "\\mathbf{w}_{t+1} = \\mathbf{w}_t - \\alpha \\nabla J(\\mathbf{w}_t) = \\begin{bmatrix} w_1 - \\alpha w_1 \\\\ w_2 - 1.8\\alpha w_2 \\end{bmatrix}",
+      "description": "Note that when 1.8·α > 1 (e.g. α = 0.9), the w₂ coordinate flips sign and bounces!"
+    }
+  ],
+  "hyperparameters": [
+    {
+      "key": "learningRate",
+      "label": "Learning Rate (α)",
+      "min": 0.02,
+      "max": 0.95,
+      "step": 0.02,
+      "defaultValue": 0.1,
+      "unit": "",
+      "description": "Try α = 0.10 for smooth convergence vs. α = 0.90 to watch wild bouncing!"
+    },
+    {
+      "key": "maxIterations",
+      "label": "Steps (T)",
+      "min": 5,
+      "max": 25,
+      "step": 1,
+      "defaultValue": 16,
+      "unit": "steps",
+      "description": "Number of gradient descent steps to animate."
+    }
+  ],
+  "defaultDataset": [],
+  "codeTemplates": {
+    "fromScratch": "import numpy as np\n\ndef loss(w1, w2):\n    return 0.5 * (w1**2 + 1.8 * w2**2)\n\ndef gradient_descent(lr=0.1, steps=16):\n    w1, w2 = 2.6, -2.2\n    history = []\n    for t in range(steps + 1):\n        history.append((t, round(w1, 4), round(w2, 4), round(loss(w1, w2), 4)))\n        dw1, dw2 = w1, 1.8 * w2\n        w1 -= lr * dw1\n        w2 -= lr * dw2\n    return history\n\nfor row in gradient_descent(lr=0.1, steps=10):\n    print(row)",
+    "production": "import torch\n\nw = torch.tensor([2.6, -2.2], requires_grad=True)\noptimizer = torch.optim.SGD([w], lr=0.1)\n\nfor step in range(16):\n    optimizer.zero_grad()\n    loss = 0.5 * (w[0]**2 + 1.8 * w[1]**2)\n    loss.backward()\n    optimizer.step()\n    print(f'Step {step}: w={w.data.tolist()}, loss={loss.item():.4f}')",
+    "dataPrep": "import pandas as pd\nfrom sklearn.preprocessing import StandardScaler\n\n# Feature scaling prevents elongated ravines in Gradient Descent!\ndf = pd.DataFrame({'sqft': [1200, 2400, 3100], 'bedrooms': [2, 4, 5]})\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(df)\nprint('Scaled features (mean=0, std=1):\\n', X_scaled)"
+  }
+}

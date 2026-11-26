@@ -2,58 +2,89 @@
   "order": 9,
   "slug": "k-means",
   "title": "K-Means Clustering",
-  "subtitle": "3D Centroid Partitioning & Expectation-Maximization",
+  "subtitle": "3D Animated Point Cloud & Centroid Gliding",
+  "domainId": "unsupervised-clustering",
+  "domainTitle": "Unsupervised Clustering & Density",
   "category": "unsupervised",
   "visualizationType": "3d",
   "supports2D3DToggle": false,
   "difficulty": "Foundational",
-  "summary": "Partition unlabeled 3D point clouds into K spherical clusters by minimizing WCSS inertia.",
+  "visualArchetype": "ClusterDensity3D",
+  "summary": "Watch 40 points in 3D space connect via dashed lines to their nearest centroid, recolor, and pull centroids to new cluster centers.",
+  "intuition": "Imagine dropping K colored magnets randomly into a 3D room filled with 40 floating metal marbles. First, each marble snaps to its closest magnet and takes on that magnet's color. Next, each magnet glides to the exact center of gravity of the marbles attached to it. Repeating those two steps causes the magnets to settle right in the middle of natural 3D neighborhoods!",
+  "howItWorks": [
+    {
+      "step": 1,
+      "title": "Initialize K Centroids",
+      "detail": "Place K starting centroids (glowing octahedrons) inside the 3D point cloud."
+    },
+    {
+      "step": 2,
+      "title": "Compute 3D Euclidean Distances",
+      "detail": "For every point xᵢ, measure the straight-line 3D distance to each centroid μ₁..μ_K (shown as dashed lines)."
+    },
+    {
+      "step": 3,
+      "title": "Assign Points (E-Step)",
+      "detail": "Assign each point to its nearest centroid and recolor the point to match that cluster."
+    },
+    {
+      "step": 4,
+      "title": "Glide Centroids to Cluster Means (M-Step)",
+      "detail": "Recompute each centroid as the arithmetic mean (x̄, ȳ, z̄) of its assigned points and smoothly glide it there."
+    },
+    {
+      "step": 5,
+      "title": "Check Convergence",
+      "detail": "Stop when centroid movement Δμ_max drops below ε or Inertia (WCSS) stabilizes."
+    }
+  ],
   "evaluationChart": {
     "type": "line",
     "title": "Elbow Method (WCSS / Inertia vs. K)",
     "xLabel": "Clusters (K)",
     "yLabel": "Inertia (WCSS)",
-    "description": "Identifies the optimal K at the 'elbow' where marginal inertia reduction sharply flattens."
+    "description": "Identifies the optimal K at the elbow where marginal inertia reduction flattens."
   },
   "prosAndCons": {
     "advantages": [
-      "Fast, scalable O(T · n · K · d) convergence on large datasets.",
-      "Simple geometric interpretation with explicit cluster centroids.",
-      "Works effectively on compact, well-separated spherical clusters."
+      "Fast O(T · n · K · d) convergence that scales effortlessly to large datasets.",
+      "Easy geometric interpretation with explicit cluster centroid coordinates.",
+      "Works cleanly on compact, isotropic spherical clusters."
     ],
     "limitations": [
-      "Requires specifying K in advance and is sensitive to centroid initialization.",
-      "Fails on non-convex, crescent, or varying-density clusters.",
-      "Sensitive to outliers that pull cluster means away from dense cores."
+      "Must specify K upfront; poor initialization can converge to suboptimal local minima.",
+      "Struggles with non-convex crescent shapes or clusters of wildly different sizes.",
+      "Outliers pull cluster means away from the true dense core."
     ],
     "properties": {
       "timeComplexity": "O(T · n · K · d)",
       "spaceComplexity": "O(n · d + K · d)",
       "interpretability": "High (Centroids)",
-      "scalingRequired": "Yes"
+      "scalingRequired": "Yes (Essential)"
     },
     "applications": [
-      "Customer segmentation & RFM cohorts",
+      "Customer segmentation & behavioral cohorts",
       "3D point-cloud & color palette quantization",
-      "Anchor box generation in object detection"
+      "Anchor box clustering in computer vision"
     ]
   },
   "formulas": [
     {
       "id": "assign",
       "label": "Cluster Assignment (E-Step)",
-      "latex": "c_i = \\arg\\min_{k \\in \\{1,\\dots,K\\}} \\|\\mathbf{x}_i - \\boldsymbol{\\mu}_k\\|^2",
+      "latex": "c_i = \\arg\\min_{k \\in \\{1,\\dots,K\\}} \\|\\mathbf{x}_i - \\boldsymbol{\\mu}_k\\|_2^2",
       "description": "Assigns each 3D point to its nearest centroid."
     },
     {
       "id": "update",
       "label": "Centroid Update (M-Step)",
       "latex": "\\boldsymbol{\\mu}_k = \\frac{1}{|C_k|} \\sum_{\\mathbf{x}_i \\in C_k} \\mathbf{x}_i",
-      "description": "Moves each centroid to the arithmetic mean of its assigned points."
+      "description": "Moves each centroid to the mean of its assigned points."
     },
     {
       "id": "inertia",
-      "label": "Inertia (WCSS Objective)",
+      "label": "Inertia (WCSS)",
       "latex": "J = \\sum_{k=1}^{K} \\sum_{\\mathbf{x}_i \\in C_k} \\|\\mathbf{x}_i - \\boldsymbol{\\mu}_k\\|^2",
       "description": "Total within-cluster sum of squared distances."
     }
@@ -71,23 +102,23 @@
     },
     {
       "key": "pointCount",
-      "label": "Point Cloud Size",
-      "min": 30,
-      "max": 300,
-      "step": 30,
-      "defaultValue": 120,
+      "label": "3D Point Cloud",
+      "min": 24,
+      "max": 120,
+      "step": 8,
+      "defaultValue": 40,
       "unit": "pts",
-      "description": "3D points rendered in InstancedMesh."
+      "description": "Number of 3D points rendered in InstancedMesh (default 40)."
     },
     {
       "key": "maxIterations",
       "label": "Max Iterations",
       "min": 2,
-      "max": 16,
+      "max": 12,
       "step": 1,
-      "defaultValue": 10,
+      "defaultValue": 8,
       "unit": "steps",
-      "description": "Lloyd iterations to compute."
+      "description": "Lloyd iterations to animate."
     }
   ],
   "defaultDataset": [
@@ -111,7 +142,8 @@
     { "id": 18, "x": -0.5, "y": -1.7, "z": 0.5 }
   ],
   "codeTemplates": {
-    "fromScratch": "import numpy as np\n\ndef kmeans(X, k=3, max_iters=10):\n    centroids = X[:k].copy()\n    for _ in range(max_iters):\n        dists = np.linalg.norm(X[:, None, :] - centroids[None, :, :], axis=2)\n        labels = np.argmin(dists, axis=1)\n        centroids = np.array([X[labels == j].mean(axis=0) for j in range(k)])\n    return centroids, labels",
-    "scikitLearn": "from sklearn.cluster import KMeans\nimport numpy as np\n\nX = np.random.randn(120, 3)\nkm = KMeans(n_clusters=3, init='k-means++', random_state=42).fit(X)\nprint('Inertia:', km.inertia_)"
+    "fromScratch": "import numpy as np\n\ndef kmeans_3d(X, k=3, iters=8):\n    centroids = X[:k].copy()\n    for step in range(iters):\n        dists = np.linalg.norm(X[:, None, :] - centroids[None, :, :], axis=2)\n        labels = np.argmin(dists, axis=1)\n        centroids = np.array([X[labels == j].mean(axis=0) for j in range(k)])\n    return centroids, labels",
+    "production": "from sklearn.cluster import KMeans\nimport numpy as np\n\nX = np.random.randn(40, 3)\nkm = KMeans(n_clusters=3, init='k-means++', n_init=10, random_state=42).fit(X)\nprint('Centroids:\\n', km.cluster_centers_)\nprint('Inertia:', km.inertia_)",
+    "dataPrep": "import pandas as pd\nfrom sklearn.preprocessing import StandardScaler\n\n# Distance-based clustering requires standardized features!\ndf = pd.DataFrame({'recency': [5, 45, 90], 'frequency': [12, 3, 1], 'monetary': [900, 120, 40]})\nX_scaled = StandardScaler().fit_transform(df)\nprint('Standardized matrix shape:', X_scaled.shape)"
   }
 }

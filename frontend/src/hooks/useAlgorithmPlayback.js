@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 
 /**
  * Playback controller for stepping through precomputed algorithm history.
- * Supports Step Forward, Step Back, Auto-Play, Scrubbing, and Reset.
+ * Auto-Play advances every 1500ms so 2D/3D animations complete smoothly.
  */
-export function useAlgorithmPlayback(totalSteps, intervalMs = 550) {
+export function useAlgorithmPlayback(totalSteps, intervalMs = 1500) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 

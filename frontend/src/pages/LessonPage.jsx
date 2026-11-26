@@ -16,10 +16,17 @@ import { useAlgorithmPlayback } from '../hooks/useAlgorithmPlayback';
 import AlgorithmDrawer from '../components/common/AlgorithmDrawer';
 import LessonWorkspace from '../components/layout/LessonWorkspace';
 
+const FLAGSHIP_PILLS = [
+  { slug: 'gradient-descent-batch-gd', label: 'Gradient Descent 3D' },
+  { slug: 'linear-regression', label: 'Linear Regression 2D' },
+  { slug: 'k-means', label: 'K-Means 3D' },
+  { slug: 'numpy-tensor-lab', label: 'NumPy 3D Cube' }
+];
+
 export default function LessonPage() {
-  const [selectedSlug, setSelectedSlug] = useState('linear-regression');
+  const [selectedSlug, setSelectedSlug] = useState('gradient-descent-batch-gd');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [viewMode, setViewMode] = useState('2d');
+  const [viewMode, setViewMode] = useState('3d');
   const [hyperparams, setHyperparams] = useState({});
   const [customPoints, setCustomPoints] = useState(null);
 
@@ -62,7 +69,8 @@ export default function LessonPage() {
     return runAlgorithmEngine(algorithm, activePoints, hyperparams, viewMode);
   }, [algorithm, activePoints, hyperparams, viewMode]);
 
-  const playback = useAlgorithmPlayback(history.length, 550);
+  // Auto-advances every 1.5s
+  const playback = useAlgorithmPlayback(history.length, 1500);
   const currentStepData = history[playback.currentStep] || history[0] || null;
 
   const badgeStyle =
@@ -89,10 +97,9 @@ export default function LessonPage() {
         onSelect={selectTopic}
       />
 
-      {/* Top Control Bar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-[#EEF2FF] text-[#4F46E5] border border-indigo-200/70">
                 <BrainCircuit className="w-5 h-5" />
@@ -114,11 +121,27 @@ export default function LessonPage() {
               </kbd>
             </button>
 
+            {/* 4 Flagship Quick-Jump Pills */}
+            <div className="hidden xl:flex items-center gap-1.5 pl-1 border-l border-slate-200">
+              {FLAGSHIP_PILLS.map((pill) => (
+                <button
+                  key={pill.slug}
+                  type="button"
+                  onClick={() => selectTopic(pill.slug)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border ${
+                    selectedSlug === pill.slug
+                      ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
+                      : 'bg-white text-[#475569] border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+
             {algorithm && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-[#0F172A]">
-                  {algorithm.title}
-                </span>
+              <div className="flex items-center gap-2 xl:hidden">
+                <span className="text-sm font-bold text-[#0F172A]">{algorithm.title}</span>
                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeStyle}`}>
                   {algorithm.domainTitle || algorithm.category}
                 </span>
@@ -135,9 +158,7 @@ export default function LessonPage() {
                     type="button"
                     onClick={() => setViewMode(mode)}
                     className={`px-2.5 py-1 rounded-md text-xs font-semibold uppercase transition-all ${
-                      viewMode === mode
-                        ? 'bg-white text-[#0F172A] shadow-sm'
-                        : 'text-[#475569]'
+                      viewMode === mode ? 'bg-white text-[#0F172A] shadow-sm' : 'text-[#475569]'
                     }`}
                   >
                     {mode}
@@ -177,7 +198,7 @@ export default function LessonPage() {
                 ) : (
                   <>
                     <Play className="w-3.5 h-3.5" />
-                    Auto-Play
+                    Play
                   </>
                 )}
               </button>
@@ -198,7 +219,6 @@ export default function LessonPage() {
         </div>
       </header>
 
-      {/* Main 6-Module Bento Workspace */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5">
         {isLoading && (
           <div className="flex items-center justify-center h-64 gap-2 text-sm text-[#475569]">
@@ -219,7 +239,18 @@ export default function LessonPage() {
 
         {algorithm && !isLoading && (
           <div className="flex flex-col gap-4">
-            <p className="text-xs text-[#475569]">{algorithm.summary}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-bold text-[#0F172A]">{algorithm.title}</h1>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeStyle}`}>
+                    {algorithm.domainTitle || algorithm.category}
+                  </span>
+                </div>
+                <p className="text-xs text-[#475569] mt-0.5">{algorithm.summary}</p>
+              </div>
+            </div>
+
             <LessonWorkspace
               algorithm={algorithm}
               viewMode={viewMode}

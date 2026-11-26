@@ -2,93 +2,158 @@ const round = (v, d = 3) => Math.round(v * 10 ** d) / 10 ** d;
 
 export function runArchetypeEngine(algorithm, dataset, params = {}, viewMode = '2d') {
   const archetype = algorithm?.visualArchetype || 'SpatialRegressionClassifier';
-  const lr = Number(params.learningRate ?? 0.12);
+  const lr = Number(params.learningRate ?? 0.1);
   const intensity = Number(params.intensity ?? 5);
 
   if (archetype === 'LossOptimization3D') {
+    const maxSteps = Math.max(5, Math.round(Number(params.maxIterations ?? 16)));
     const steps = [];
-    let x = 2.6;
-    let y = -2.2;
+    let w1 = 2.6;
+    let w2 = -2.2;
     const path = [];
     const lossCurve = [];
-    for (let s = 0; s <= 15; s++) {
-      const z = 0.22 * (x * x + y * y) + 0.35 * Math.sin(x * 1.4) * Math.cos(y * 1.4);
-      path.push({ x: round(x, 2), y: round(y, 2), z: round(z, 3) });
-      lossCurve.push({ x: s, y: round(z, 3) });
+
+    for (let s = 0; s <= maxSteps; s++) {
+      // Elliptical convex bowl J(w1, w2) = 0.5 * (w1^2 + 1.8 * w2^2)
+      // At alpha = 0.1: smooth convergence. At alpha = 0.9: 1.8*0.9 = 1.62 > 1 -> wild bouncing!
+      const z = 0.5 * (w1 * w1 + 1.8 * w2 * w2);
+      const dw1 = w1;
+      const dw2 = 1.8 * w2;
+      path.push({ x: round(w1, 3), y: round(w2, 3), z: round(z, 3) });
+      lossCurve.push({ x: s, y: round(Math.min(25, z), 3) });
+
       steps.push({
         step: s,
-        phase: s === 0 ? 'Initial Weights θ₀' : `Step ${s} (α=${lr})`,
-        substitutionLatex: `\\theta_{${s}} = (${round(x, 2)},\\; ${round(y, 2)}), \\quad \\mathcal{L}(\\theta) = ${round(z, 3)}`,
+        phase:
+          s === 0
+            ? 'Start (w₁=2.6, w₂=-2.2)'
+            : lr >= 0.7
+            ? `Oscillating Step ${s} (α=${lr})`
+            : `Converging Step ${s} (α=${lr})`,
+        substitutionLatex: `\\mathbf{w}_{${s + 1}} = (${round(w1, 2)},\\; ${round(w2, 2)}) - ${lr}\\,(${round(
+          dw1,
+          2
+        )},\\; ${round(dw2, 2)}), \\quad J = ${round(z, 3)}`,
         kpis: [
-          { label: 'Param θ₁', value: round(x, 2), tone: 'indigo' },
-          { label: 'Param θ₂', value: round(y, 2), tone: 'indigo' },
-          { label: 'Loss L(θ)', value: round(z, 3), tone: 'rose' },
-          { label: 'Step Rate α', value: lr, tone: 'amber' }
+          { label: 'Weight w₁', value: round(w1, 3), tone: 'indigo' },
+          { label: 'Weight w₂', value: round(w2, 3), tone: 'indigo' },
+          { label: 'Loss J(w)', value: round(z, 3), tone: z > 6 ? 'rose' : 'teal' },
+          { label: 'Learning Rate α', value: lr, tone: lr >= 0.7 ? 'rose' : 'amber' }
         ],
         table: {
-          title: 'Optimization Trajectory',
-          headers: ['Step', 'θ₁', 'θ₂', 'Loss L(θ)'],
-          rows: path.slice(-6).map((p, idx) => [Math.max(0, path.length - 6) + idx, p.x, p.y, p.z])
+          title: 'Gradient Descent Arithmetic Log',
+          headers: ['Step', 'w₁', 'w₂', '∇J = (w₁, 1.8w₂)', 'Loss J'],
+          rows: path.slice(-6).map((p, idx) => [
+            Math.max(0, path.length - 6) + idx,
+            p.x,
+            p.y,
+            `(${p.x}, ${round(1.8 * p.y, 2)})`,
+            p.z
+          ])
         },
         chartData: lossCurve.map((c) => ({ ...c })),
-        viz: { kind: 'loss-opt-3d', path: path.map((p) => ({ ...p })), current: { x, y, z } }
+        viz: {
+          kind: 'loss-opt-3d',
+          path: path.map((p) => ({ ...p })),
+          current: { x: w1, y: w2, z },
+          grad: { dw1, dw2 }
+        }
       });
-      const gx = 0.44 * x + 0.49 * Math.cos(x * 1.4) * Math.cos(y * 1.4);
-      const gy = 0.44 * y - 0.49 * Math.sin(x * 1.4) * Math.sin(y * 1.4);
-      x -= lr * gx * (0.7 + intensity * 0.08);
-      y -= lr * gy * (0.7 + intensity * 0.08);
+
+      const nextW1 = w1 - lr * dw1;
+      const nextW2 = w2 - lr * dw2;
+      if (!Number.isFinite(nextW1) || Math.abs(nextW2) > 8) break;
+      w1 = nextW1;
+      w2 = nextW2;
     }
     return steps;
   }
 
   if (archetype === 'TensorGridCube3D') {
-    const sliceDepth = Math.round(Number(params.sliceDepth ?? 0));
-    const axisMode = Math.round(Number(params.axisMode ?? 0));
-    const shape = dataset?.shape || [3, 4, 4];
+    const sliceOp = Math.round(Number(params.sliceOp ?? 0));
+    const shape = dataset?.shape || [3, 4, 3];
     const [D, R, C] = shape;
+    const vec = [10, 20, 30];
+
     const cells = [];
     for (let d = 0; d < D; d++) {
       for (let r = 0; r < R; r++) {
         for (let c = 0; c < C; c++) {
-          cells.push({
-            d,
-            r,
-            c,
-            val: d * R * C + r * C + c,
-            highlighted: axisMode === 0 ? d === sliceDepth : axisMode === 1 ? r === sliceDepth % R : c === sliceDepth % C
-          });
+          const baseVal = d * R * C + r * C + c;
+          const active =
+            sliceOp === 0
+              ? d === 0
+              : sliceOp === 1
+              ? r >= 1 && r < 3
+              : true;
+          const displayVal = sliceOp === 2 ? baseVal + vec[c] : baseVal;
+          cells.push({ d, r, c, val: baseVal, displayVal, active });
         }
       }
     }
+
+    const opMeta = [
+      {
+        label: 'arr[0, :, :]',
+        outShape: `(${R}, ${C})`,
+        latex: `\\text{arr}[0, :, :] : (3, 4, 3) \\longrightarrow (4, 3) \\quad (12\\text{ elements})`
+      },
+      {
+        label: 'arr[:, 1:3, :]',
+        outShape: `(${D}, 2, ${C})`,
+        latex: `\\text{arr}[:, 1:3, :] : (3, 4, 3) \\longrightarrow (3, 2, 3) \\quad (18\\text{ elements})`
+      },
+      {
+        label: 'arr + [10, 20, 30]',
+        outShape: `(${D}, ${R}, ${C})`,
+        latex: `(3, 4, 3) + (3,) \\equiv (3, 4, 3) + (1, 1, 3) \\longrightarrow (3, 4, 3)`
+      }
+    ];
+
     const benchChart = [
       { name: 'Python Loop', value: 48.2 },
       { name: 'NumPy Vector', value: 0.6 },
-      { name: 'PyTorch CUDA', value: 0.15 }
+      { name: 'PyTorch GPU', value: 0.15 }
     ];
-    return [0, 1, 2].map((stepIdx) => {
-      const activeSlice = (sliceDepth + stepIdx) % D;
+
+    return opMeta.map((meta, idx) => {
+      const mode = sliceOp !== 0 ? sliceOp : idx;
+      const m = opMeta[mode] || meta;
+      const activeCells = cells.map((cell) => ({
+        ...cell,
+        active: mode === 0 ? cell.d === 0 : mode === 1 ? cell.r >= 1 && cell.r < 3 : true,
+        displayVal: mode === 2 ? cell.val + vec[cell.c] : cell.val
+      }));
+
       return {
-        step: stepIdx,
-        phase: `Slice axis=${axisMode} · idx=${activeSlice}`,
-        substitutionLatex: `\\text{shape} = (${D},\\; ${R},\\; ${C}), \\quad \\text{sum}(\\text{axis}=${axisMode}) \\to ${
-          axisMode === 0 ? `(${R},${C})` : axisMode === 1 ? `(${D},${C})` : `(${D},${R})`
-        }`,
+        step: idx,
+        phase: m.label,
+        substitutionLatex: m.latex,
         kpis: [
-          { label: 'Shape', value: `(${D}, ${R}, ${C})`, tone: 'cobalt' },
-          { label: 'Total Elements', value: D * R * C, tone: 'indigo' },
-          { label: 'Active Slice', value: activeSlice, tone: 'amber' },
-          { label: 'Reduce Axis', value: `axis=${axisMode}`, tone: 'teal' }
+          { label: 'Input Shape', value: `(${D}, ${R}, ${C})`, tone: 'cobalt' },
+          { label: 'Output Shape', value: m.outShape, tone: 'teal' },
+          { label: 'Operation', value: m.label, tone: 'indigo' },
+          { label: 'Active Voxels', value: activeCells.filter((c) => c.active).length, tone: 'amber' }
         ],
         table: {
-          title: `Slice [${activeSlice}, :, :] Values`,
-          headers: ['Row', 'Col 0', 'Col 1', 'Col 2', 'Col 3'],
+          title: `Result Slice Preview (${m.label})`,
+          headers: ['Tray d', 'Row r', 'Col 0', 'Col 1', 'Col 2'],
           rows: Array.from({ length: R }, (_, r) => [
+            mode === 0 ? 0 : '0..2',
             `r${r}`,
-            ...Array.from({ length: C }, (_, c) => activeSlice * R * C + r * C + c)
+            ...Array.from({ length: C }, (_, c) => {
+              const found = activeCells.find((x) => x.d === 0 && x.r === r && x.c === c);
+              return found ? found.displayVal : '-';
+            })
           ])
         },
         chartData: benchChart,
-        viz: { kind: 'tensor-cube-3d', shape, cells, activeSlice, axisMode }
+        viz: {
+          kind: 'tensor-cube-3d',
+          shape,
+          cells: activeCells,
+          sliceOp: mode
+        }
       };
     });
   }
@@ -187,7 +252,7 @@ export function runArchetypeEngine(algorithm, dataset, params = {}, viewMode = '
           rows: layers.slice(0, -1).map((l, idx) => [
             `Linear_${idx + 1}`,
             `${l} → ${layers[idx + 1]}`,
-            round(0.9 / (idx + 1) * Math.exp(-s * 0.1), 3)
+            round((0.9 / (idx + 1)) * Math.exp(-s * 0.1), 3)
           ])
         },
         chartData: lossCurve.map((c) => ({ ...c })),
@@ -208,7 +273,6 @@ export function runArchetypeEngine(algorithm, dataset, params = {}, viewMode = '
       [0.3, 1.5, 2.2, 2.7, 1.6],
       [0.2, 0.4, 0.7, 1.9, 2.8]
     ];
-
     const matrix = rawDots.map((row) => {
       const scaled = row.map((v) => v / (scale * 0.25));
       const maxS = Math.max(...scaled);
@@ -216,7 +280,6 @@ export function runArchetypeEngine(algorithm, dataset, params = {}, viewMode = '
       const sumE = exps.reduce((a, b) => a + b, 0);
       return exps.map((e) => round(e / sumE, 3));
     });
-
     return tokens.map((tok, qIdx) => ({
       step: qIdx,
       phase: `Query Token: "${tok}"`,
@@ -359,7 +422,6 @@ export function runArchetypeEngine(algorithm, dataset, params = {}, viewMode = '
     return steps;
   }
 
-  // Fallback for SubspaceEmbedding3D / ClusterDensity3D / TreeEnsembleVisualizer / SpatialRegressionClassifier
   const defaultPts = Array.from({ length: 18 }, (_, i) => ({
     id: i + 1,
     x: round(1.5 + ((i * 1.7) % 7), 2),
