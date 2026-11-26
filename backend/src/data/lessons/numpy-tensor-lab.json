@@ -1,0 +1,73 @@
+{
+  "slug": "numpy-tensor-lab",
+  "title": "NumPy: 3D Tensors & Broadcasting",
+  "subtitle": "Vectorized N-D Arrays, Slicing & Axis Reductions",
+  "domainId": "python-stack",
+  "domainTitle": "Python AI Stack",
+  "category": "library",
+  "visualizationType": "3d",
+  "supports2D3DToggle": true,
+  "difficulty": "Foundational",
+  "visualArchetype": "TensorGridCube3D",
+  "summary": "Inspect 3D tensor shapes, stride slicing, broadcasting expansion, and axis=0/1/2 reductions in 3D.",
+  "evaluationChart": {
+    "type": "bar",
+    "title": "Execution Speed: Python Loop vs. NumPy Vectorized (100k Ops)",
+    "xLabel": "Implementation",
+    "yLabel": "Latency (ms) — Lower is Better",
+    "description": "Contiguous C-backed ndarray memory and SIMD vectorization eliminate Python interpreter loop overhead."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Contiguous typed memory layout enables 50x–100x faster SIMD vectorized math than Python lists.",
+      "Broadcasting aligns mismatched tensor shapes virtually without copying memory.",
+      "Universal interchange format underlying Pandas, Scikit-Learn, and PyTorch."
+    ],
+    "limitations": [
+      "CPU-only execution (use PyTorch/CuPy for CUDA GPU acceleration).",
+      "Fixed homogeneous dtype per ndarray (unlike mixed-type Pandas DataFrames).",
+      "Large unintended broadcasts can silently allocate gigabytes of RAM."
+    ],
+    "properties": {
+      "timeComplexity": "O(N) SIMD C-loops",
+      "spaceComplexity": "O(N) contiguous",
+      "hardware": "CPU (BLAS / AVX)",
+      "scalingRequired": "N/A (Core Engine)"
+    },
+    "applications": [
+      "Matrix multiplication & linear algebra",
+      "Image/audio tensor slicing & padding",
+      "Vectorized ML loss & gradient computation"
+    ]
+  },
+  "pythonBridge": {
+    "pandas": "df.to_numpy(dtype=np.float32) converts tabular columns into contiguous 2D ndarrays.",
+    "numpy": "np.sum(tensor, axis=axis) collapses the selected dimension while preserving remaining strides.",
+    "pytorch": "torch.from_numpy(arr) shares zero-copy CPU memory directly with PyTorch tensors."
+  },
+  "formulas": [
+    {
+      "id": "broadcast",
+      "label": "Broadcasting Rule",
+      "latex": "(A_{m \\times 1}) + (B_{1 \\times n}) \\longrightarrow C_{m \\times n}",
+      "description": "Trailing dimensions of size 1 stretch virtually to match the other operand."
+    },
+    {
+      "id": "axis",
+      "label": "Axis Reduction",
+      "latex": "Y = \\sum_{i \\in \\text{axis}} X_{i}",
+      "description": "Reduces along axis=0 (depth), axis=1 (rows), or axis=2 (cols)."
+    }
+  ],
+  "hyperparameters": [
+    { "key": "sliceDepth", "label": "Depth Slice (axis=0)", "min": 0, "max": 2, "step": 1, "defaultValue": 0, "unit": "idx", "description": "Select active Z-slice of the 3D (3×4×4) tensor." },
+    { "key": "axisMode", "label": "Reduction Axis", "min": 0, "max": 2, "step": 1, "defaultValue": 0, "unit": "axis", "description": "Highlight axis=0, axis=1, or axis=2 reduction." }
+  ],
+  "defaultDataset": { "shape": [3, 4, 4] },
+  "codeTemplates": {
+    "purePython": "# Nested Python list sum (slow interpreter loop)\ntensor = [[[i + j + k for k in range(4)] for j in range(4)] for i in range(3)]\nslice_0 = tensor[0]\nrow_sums = [sum(row) for row in slice_0]",
+    "fromScratch": "import numpy as np\n\nX = np.arange(48).reshape(3, 4, 4)\nprint('Shape:', X.shape, 'Strides:', X.strides)\n\n# Broadcasting (3, 4, 1) + (1, 1, 4) -> (3, 4, 4)\nbias = np.array([10, 20, 30, 40])\nY = X + bias\nprint('Axis 0 sum shape:', Y.sum(axis=0).shape)",
+    "scikitLearn": "import numpy as np\nfrom sklearn.preprocessing import StandardScaler\n\nX_2d = np.arange(48).reshape(12, 4).astype(float)\nscaled = StandardScaler().fit_transform(X_2d)\nprint('Mean:', scaled.mean(axis=0).round(2))",
+    "pytorch": "import torch\n\nX = torch.arange(48, dtype=torch.float32).reshape(3, 4, 4)\nbias = torch.tensor([10., 20., 30., 40.])\nY = X + bias\nprint('PyTorch broadcast shape:', Y.shape)"
+  }
+}

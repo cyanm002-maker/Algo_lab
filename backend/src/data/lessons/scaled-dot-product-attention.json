@@ -1,0 +1,66 @@
+{
+  "slug": "scaled-dot-product-attention",
+  "title": "Scaled Dot-Product Attention",
+  "subtitle": "Query-Key-Value Softmax Routing in Transformers",
+  "domainId": "transformers-nlp",
+  "domainTitle": "Transformers, LLMs & NLP",
+  "category": "supervised",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Intermediate",
+  "visualArchetype": "AttentionTransformerFlow",
+  "summary": "Compute softmax(QK^T / sqrt(d_k))V attention weights across tokens.",
+  "evaluationChart": {
+    "type": "bar",
+    "title": "Token Attention Weight Distribution (Query = 'bank')",
+    "xLabel": "Key Token",
+    "yLabel": "Attention Weight α",
+    "description": "Shows how temperature / scaling factor 1/sqrt(d_k) sharpens or flattens token attention."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "O(1) path length between any two tokens regardless of sequence distance.",
+      "Fully parallelizable across all sequence positions during training.",
+      "Dynamic context-dependent weighting (unlike static Word2Vec embeddings)."
+    ],
+    "limitations": [
+      "O(N²) time and memory complexity with respect to sequence length N.",
+      "Requires explicit positional encodings (RoPE/sinusoidal) since attention is permutation-equivariant.",
+      "Quadratic KV-cache growth during long-context autoregressive decoding."
+    ],
+    "properties": {
+      "timeComplexity": "O(N² · d_k)",
+      "spaceComplexity": "O(N²)",
+      "hardware": "GPU Tensor Cores",
+      "scalingRequired": "1 / sqrt(d_k)"
+    },
+    "applications": [
+      "Large Language Models (GPT, Gemini, Llama)",
+      "Vision Transformers (ViT) & Multimodal CLIP",
+      "Protein structure prediction (AlphaFold)"
+    ]
+  },
+  "pythonBridge": {
+    "pandas": "Tokenized sequences and attention masks are batched from text DataFrames.",
+    "numpy": "scores = (Q @ K.T) / np.sqrt(d_k); weights = softmax(scores)",
+    "pytorch": "torch.nn.functional.scaled_dot_product_attention(Q, K, V) uses FlashAttention kernels."
+  },
+  "formulas": [
+    {
+      "id": "sdpa",
+      "label": "Scaled Dot-Product Attention",
+      "latex": "\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right)V",
+      "description": "Dividing by sqrt(d_k) keeps dot-product variance at 1 so softmax gradients do not vanish."
+    }
+  ],
+  "hyperparameters": [
+    { "key": "dk", "label": "Head Dim (d_k)", "min": 4, "max": 64, "step": 4, "defaultValue": 16, "unit": "dim", "description": "Scaling denominator sqrt(d_k) controlling softmax sharpness." }
+  ],
+  "defaultDataset": { "tokens": ["The", "river", "bank", "flooded", "fast"] },
+  "codeTemplates": {
+    "purePython": "import math\n# Dot product of Q[i] and K[j] divided by sqrt(d_k)",
+    "fromScratch": "import numpy as np\n\ndef attention(Q, K, V):\n    d_k = Q.shape[-1]\n    scores = (Q @ K.T) / np.sqrt(d_k)\n    exp_s = np.exp(scores - scores.max(axis=-1, keepdims=True))\n    weights = exp_s / exp_s.sum(axis=-1, keepdims=True)\n    return weights @ V, weights",
+    "scikitLearn": "# Transformers are implemented in PyTorch / JAX; Scikit-Learn handles TF-IDF baselines.",
+    "pytorch": "import torch\nimport torch.nn.functional as F\n\nQ = torch.randn(1, 5, 16)\nK = torch.randn(1, 5, 16)\nV = torch.randn(1, 5, 16)\nout = F.scaled_dot_product_attention(Q, K, V)\nprint('Output:', out.shape)"
+  }
+}

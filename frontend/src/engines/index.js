@@ -12,6 +12,7 @@ import { runHierarchicalHistory } from './hierarchicalMath.js';
 import { runGmmEmHistory } from './gmmEmMath.js';
 import { runPcaHistory } from './pcaMath.js';
 import { runIsolationForestHistory } from './isolationForestMath.js';
+import { runArchetypeEngine } from './archetypeEngine.js';
 
 const ENGINE_MAP = {
   'linear-regression': runLinearRegressionHistory,
@@ -30,8 +31,11 @@ const ENGINE_MAP = {
   'isolation-forest': runIsolationForestHistory
 };
 
-export function runAlgorithmEngine(slug, dataset, params, viewMode) {
+export function runAlgorithmEngine(algorithmOrSlug, dataset, params, viewMode) {
+  const slug = typeof algorithmOrSlug === 'string' ? algorithmOrSlug : algorithmOrSlug?.slug;
   const runner = ENGINE_MAP[slug];
-  if (!runner) return [];
-  return runner(dataset, params, viewMode);
+  if (runner) {
+    return runner(dataset, params, viewMode);
+  }
+  return runArchetypeEngine(algorithmOrSlug, dataset, params, viewMode);
 }

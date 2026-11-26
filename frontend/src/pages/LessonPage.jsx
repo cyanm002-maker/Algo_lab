@@ -10,7 +10,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { useAlgorithm, useAlgorithms } from '../api/modelApi';
+import { useAlgorithm, useCurriculum } from '../api/modelApi';
 import { runAlgorithmEngine } from '../engines';
 import { useAlgorithmPlayback } from '../hooks/useAlgorithmPlayback';
 import AlgorithmDrawer from '../components/common/AlgorithmDrawer';
@@ -23,10 +23,13 @@ export default function LessonPage() {
   const [hyperparams, setHyperparams] = useState({});
   const [customPoints, setCustomPoints] = useState(null);
 
-  const { data: algorithms = [] } = useAlgorithms();
+  const { data: curriculum } = useCurriculum();
+  const algorithms = curriculum?.data || [];
+  const domains = curriculum?.domains || [];
+  const libraries = curriculum?.libraries || [];
+
   const { data: algorithm, isLoading, isError, error } = useAlgorithm(selectedSlug);
 
-  // Cmd/Ctrl + K shortcut to toggle Slide-Over Algorithm Drawer
   useEffect(() => {
     const onKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -38,7 +41,6 @@ export default function LessonPage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Reset defaults when switching algorithms
   useEffect(() => {
     if (!algorithm) return;
     const defaults = {};
@@ -55,35 +57,41 @@ export default function LessonPage() {
     [customPoints, algorithm]
   );
 
-  // 0ms client-side execution
   const history = useMemo(() => {
     if (!algorithm) return [];
-    return runAlgorithmEngine(algorithm.slug, activePoints, hyperparams, viewMode);
+    return runAlgorithmEngine(algorithm, activePoints, hyperparams, viewMode);
   }, [algorithm, activePoints, hyperparams, viewMode]);
 
   const playback = useAlgorithmPlayback(history.length, 550);
   const currentStepData = history[playback.currentStep] || history[0] || null;
 
-  const isSup = algorithm?.category === 'supervised';
+  const badgeStyle =
+    algorithm?.category === 'library'
+      ? 'bg-[#EFF6FF] text-[#2563EB]'
+      : algorithm?.category === 'supervised'
+      ? 'bg-[#EEF2FF] text-[#4F46E5]'
+      : 'bg-[#F0FDFA] text-[#0D9488]';
+
+  const selectTopic = (slug) => {
+    playback.reset();
+    setSelectedSlug(slug);
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] flex flex-col">
-      {/* Slide-Over Algorithm Drawer */}
       <AlgorithmDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
+        domains={domains}
         algorithms={algorithms}
+        libraries={libraries}
         selectedSlug={selectedSlug}
-        onSelect={(slug) => {
-          playback.reset();
-          setSelectedSlug(slug);
-        }}
+        onSelect={selectTopic}
       />
 
       {/* Top Control Bar */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-          {/* Left: Brand + Drawer Trigger + Active Algorithm */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-[#EEF2FF] text-[#4F46E5] border border-indigo-200/70">
@@ -100,7 +108,7 @@ export default function LessonPage() {
               className="px-3 py-1.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-colors"
             >
               <PanelLeftOpen className="w-3.5 h-3.5" />
-              <span>Explore Algorithms ({algorithms.length || 14})</span>
+              <span>Explore ({algorithms.length || 222} + {libraries.length || 5} Labs)</span>
               <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-slate-700 text-slate-200 rounded">
                 ⌘K
               </kbd>
@@ -111,20 +119,13 @@ export default function LessonPage() {
                 <span className="text-sm font-bold text-[#0F172A]">
                   {algorithm.title}
                 </span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                    isSup
-                      ? 'bg-[#EEF2FF] text-[#4F46E5]'
-                      : 'bg-[#F0FDFA] text-[#0D9488]'
-                  }`}
-                >
-                  {isSup ? 'Supervised' : 'Unsupervised'}
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${badgeStyle}`}>
+                  {algorithm.domainTitle || algorithm.category}
                 </span>
               </div>
             )}
           </div>
 
-          {/* Right: 2D/3D Toggle + Playback Controls */}
           <div className="flex flex-wrap items-center gap-2">
             {algorithm?.supports2D3DToggle && (
               <div className="inline-flex rounded-lg bg-[#F1F5F9] p-0.5 border border-slate-200 mr-1">
@@ -150,7 +151,7 @@ export default function LessonPage() {
                 type="button"
                 onClick={playback.reset}
                 title="Reset"
-                className="p-1.5 rounded-md hover:bg-white text-[#475569] hover:text-[#0F172A] transition-colors"
+                className="p-1.5 rounded-md hover:bg-white text-[#475569] hover:text-[#0F172A]"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
@@ -159,14 +160,14 @@ export default function LessonPage() {
                 onClick={playback.stepBackward}
                 disabled={playback.currentStep <= 0}
                 title="Step Back"
-                className="p-1.5 rounded-md hover:bg-white disabled:opacity-40 text-[#475569] hover:text-[#0F172A] transition-colors"
+                className="p-1.5 rounded-md hover:bg-white disabled:opacity-40 text-[#475569] hover:text-[#0F172A]"
               >
                 <SkipBack className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
                 onClick={playback.togglePlay}
-                className="px-2.5 py-1 rounded-md bg-[#4F46E5] hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1 transition-colors"
+                className="px-2.5 py-1 rounded-md bg-[#4F46E5] hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1"
               >
                 {playback.isPlaying ? (
                   <>
@@ -185,7 +186,7 @@ export default function LessonPage() {
                 onClick={playback.stepForward}
                 disabled={playback.currentStep >= playback.maxStep}
                 title="Step Forward"
-                className="p-1.5 rounded-md hover:bg-white disabled:opacity-40 text-[#475569] hover:text-[#0F172A] transition-colors"
+                className="p-1.5 rounded-md hover:bg-white disabled:opacity-40 text-[#475569] hover:text-[#0F172A]"
               >
                 <SkipForward className="w-3.5 h-3.5" />
               </button>
@@ -197,12 +198,12 @@ export default function LessonPage() {
         </div>
       </header>
 
-      {/* Main Bento Workspace */}
+      {/* Main 6-Module Bento Workspace */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5">
         {isLoading && (
           <div className="flex items-center justify-center h-64 gap-2 text-sm text-[#475569]">
             <Loader2 className="w-5 h-5 animate-spin text-[#4F46E5]" />
-            Loading algorithm module...
+            Loading curriculum module...
           </div>
         )}
 
@@ -238,6 +239,7 @@ export default function LessonPage() {
               }
               onResetPoints={() => setCustomPoints(null)}
               hasCustomPoints={Boolean(customPoints)}
+              onSelectLibrary={selectTopic}
             />
           </div>
         )}

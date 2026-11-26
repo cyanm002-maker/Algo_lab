@@ -1,0 +1,67 @@
+{
+  "slug": "pytorch-autograd-lab",
+  "title": "PyTorch: Autograd & Computation Graph",
+  "subtitle": "Dynamic DAG, requires_grad & .backward() Flow",
+  "domainId": "python-stack",
+  "domainTitle": "Python AI Stack",
+  "category": "library",
+  "visualizationType": "3d",
+  "supports2D3DToggle": false,
+  "difficulty": "Intermediate",
+  "visualArchetype": "NeuralNetworkGraph3D",
+  "summary": "Trace forward tensor operations and reverse-mode .backward() gradient flow across nn.Module.",
+  "evaluationChart": {
+    "type": "line",
+    "title": "Autograd Training Loss per Step",
+    "xLabel": "Step",
+    "yLabel": "MSE Loss",
+    "description": "Tracks loss reduction as .backward() accumulates gradients and optimizer.step() updates weights."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Define-by-run dynamic computation graph works natively with Python control flow.",
+      "Automatic reverse-mode differentiation (.backward()) computes exact gradients in one pass.",
+      "Seamless CUDA / Apple MPS GPU acceleration via .to(device)."
+    ],
+    "limitations": [
+      "Forgetting optimizer.zero_grad() silently accumulates gradients across batches.",
+      "Keeping graphs in memory without torch.no_grad() during eval causes OOM.",
+      "Dynamic Python dispatch overhead unless compiled with torch.compile()."
+    ],
+    "properties": {
+      "timeComplexity": "O(F + B) forward+backward",
+      "spaceComplexity": "O(activations)",
+      "hardware": "CPU / CUDA GPU / MPS",
+      "scalingRequired": "Yes (Norm Layers)"
+    },
+    "applications": [
+      "Deep neural networks & Transformers",
+      "Custom differentiable physics & loss layers",
+      "Large-scale distributed GPU training"
+    ]
+  },
+  "pythonBridge": {
+    "pandas": "Load tabular features and labels via Dataset.__getitem__.",
+    "numpy": "Convert initial arrays with torch.tensor(arr, requires_grad=True).",
+    "pytorch": "loss.backward() walks the DAG in reverse to populate param.grad for every leaf tensor."
+  },
+  "formulas": [
+    {
+      "id": "chain",
+      "label": "Reverse-Mode Chain Rule",
+      "latex": "\\frac{\\partial \\mathcal{L}}{\\partial w} = \\frac{\\partial \\mathcal{L}}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial z} \\cdot \\frac{\\partial z}{\\partial w}",
+      "description": "Autograd multiplies local Jacobians backward from scalar loss L to leaf weights."
+    }
+  ],
+  "hyperparameters": [
+    { "key": "learningRate", "label": "Learning Rate (α)", "min": 0.01, "max": 0.2, "step": 0.01, "defaultValue": 0.05, "unit": "", "description": "Step size for optimizer.step()." },
+    { "key": "hiddenWidth", "label": "Hidden Layer Width", "min": 2, "max": 6, "step": 1, "defaultValue": 4, "unit": "nodes", "description": "Number of neurons in the hidden layer." }
+  ],
+  "defaultDataset": { "layers": [2, 4, 3, 1] },
+  "codeTemplates": {
+    "purePython": "# Manual scalar chain rule\nx, w, y = 2.0, 1.5, 5.0\ny_hat = w * x\ndL_dyhat = 2 * (y_hat - y)\ndL_dw = dL_dyhat * x\nprint('Manual grad:', dL_dw)",
+    "fromScratch": "import numpy as np\n\nx, w, y = np.array([2.0]), np.array([1.5]), np.array([5.0])\ny_hat = w * x\nloss = np.mean((y_hat - y) ** 2)\ndw = 2 * (y_hat - y) * x\nprint('NumPy grad:', dw)",
+    "scikitLearn": "from sklearn.neural_network import MLPRegressor\nimport numpy as np\n\nX = np.array([[1.0, 2.0], [2.0, 3.0]])\ny = np.array([3.0, 5.0])\nmlp = MLPRegressor(hidden_layer_sizes=(4,), max_iter=200).fit(X, y)",
+    "pytorch": "import torch\nimport torch.nn as nn\n\nx = torch.tensor([[2.0, 1.0]])\ny = torch.tensor([[5.0]])\nmodel = nn.Sequential(nn.Linear(2, 4), nn.ReLU(), nn.Linear(4, 1))\nopt = torch.optim.Adam(model.parameters(), lr=0.05)\n\nloss = nn.MSELoss()(model(x), y)\nopt.zero_grad()\nloss.backward()  # Populates .grad\nopt.step()\nprint('Loss:', loss.item())"
+  }
+}

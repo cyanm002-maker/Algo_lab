@@ -1,30 +1,38 @@
 import React from 'react';
-import Visualizer2D from './Visualizer2D';
-import Visualizer3D from './Visualizer3D';
+import SpatialRegressionClassifier from '../archetypes/SpatialRegressionClassifier';
+import LossOptimization3D from '../archetypes/LossOptimization3D';
+import ClusterDensity3D from '../archetypes/ClusterDensity3D';
+import SubspaceEmbedding3D from '../archetypes/SubspaceEmbedding3D';
+import TreeEnsembleVisualizer from '../archetypes/TreeEnsembleVisualizer';
+import NeuralNetworkGraph3D from '../archetypes/NeuralNetworkGraph3D';
+import TensorGridCube3D from '../archetypes/TensorGridCube3D';
+import DataFramePipeline2D from '../archetypes/DataFramePipeline2D';
+import AttentionTransformerFlow from '../archetypes/AttentionTransformerFlow';
+import DiffusionFlowVisualizer from '../archetypes/DiffusionFlowVisualizer';
+import TimeSeriesForecastPlot from '../archetypes/TimeSeriesForecastPlot';
+import RlAndMetricMatrix from '../archetypes/RlAndMetricMatrix';
 
-export default function CanvasWrapper({
-  algorithm,
-  viewMode,
-  stepData,
-  onAddPoint,
-  onMoveQuery,
-  onResetPoints,
-  hasCustomPoints
-}) {
+const ARCHETYPE_MAP = {
+  SpatialRegressionClassifier,
+  LossOptimization3D,
+  ClusterDensity3D,
+  SubspaceEmbedding3D,
+  TreeEnsembleVisualizer,
+  NeuralNetworkGraph3D,
+  TensorGridCube3D,
+  DataFramePipeline2D,
+  AttentionTransformerFlow,
+  DiffusionFlowVisualizer,
+  TimeSeriesForecastPlot,
+  RlAndMetricMatrix
+};
+
+export default function CanvasWrapper(props) {
+  const { algorithm } = props;
   if (!algorithm) return null;
 
-  const activeMode = viewMode || algorithm.visualizationType;
-  if (activeMode === '3d') {
-    return <Visualizer3D stepData={stepData} />;
-  }
+  const Component =
+    ARCHETYPE_MAP[algorithm.visualArchetype] || SpatialRegressionClassifier;
 
-  return (
-    <Visualizer2D
-      stepData={stepData}
-      onAddPoint={onAddPoint}
-      onMoveQuery={onMoveQuery}
-      onResetPoints={onResetPoints}
-      hasCustomPoints={hasCustomPoints}
-    />
-  );
+  return <Component {...props} />;
 }

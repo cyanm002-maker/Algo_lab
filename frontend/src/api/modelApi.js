@@ -16,10 +16,9 @@ export const apiClient = axios.create({
   }
 });
 
-export const fetchAlgorithms = async (category) => {
-  const params = category ? { category } : undefined;
-  const { data } = await apiClient.get('/algorithms', { params });
-  return data.data;
+export const fetchCurriculum = async () => {
+  const { data } = await apiClient.get('/algorithms');
+  return data;
 };
 
 export const fetchAlgorithmBySlug = async (slug) => {
@@ -27,11 +26,11 @@ export const fetchAlgorithmBySlug = async (slug) => {
   return data.data;
 };
 
-export const useAlgorithms = (category) =>
+export const useCurriculum = () =>
   useQuery({
-    queryKey: ['algorithms', category || 'all'],
-    queryFn: () => fetchAlgorithms(category),
-    staleTime: 1000 * 60 * 10
+    queryKey: ['curriculum'],
+    queryFn: fetchCurriculum,
+    staleTime: 1000 * 60 * 15
   });
 
 export const useAlgorithm = (slug) =>
@@ -39,5 +38,5 @@ export const useAlgorithm = (slug) =>
     queryKey: ['algorithm', slug],
     queryFn: () => fetchAlgorithmBySlug(slug),
     enabled: Boolean(slug),
-    staleTime: 1000 * 60 * 10
+    staleTime: 1000 * 60 * 15
   });

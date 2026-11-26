@@ -6,14 +6,18 @@ import { Code2, Copy, Check } from 'lucide-react';
 
 SyntaxHighlighter.registerLanguage('python', python);
 
+const TABS = [
+  { key: 'purePython', label: 'Pure Python' },
+  { key: 'fromScratch', label: 'NumPy Vectorized' },
+  { key: 'scikitLearn', label: 'Scikit-Learn' },
+  { key: 'pytorch', label: 'PyTorch' }
+];
+
 export default function CodeViewer({ codeTemplates }) {
   const [activeTab, setActiveTab] = useState('fromScratch');
   const [copied, setCopied] = useState(false);
 
-  const code =
-    activeTab === 'fromScratch'
-      ? codeTemplates?.fromScratch || ''
-      : codeTemplates?.scikitLearn || '';
+  const code = codeTemplates?.[activeTab] || codeTemplates?.fromScratch || '';
 
   const handleCopy = async () => {
     if (!code) return;
@@ -30,36 +34,28 @@ export default function CodeViewer({ codeTemplates }) {
     <div className="bento-card p-5 flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Code2 className="w-4 h-4 text-[#4F46E5]" />
+          <Code2 className="w-4 h-4 text-[#2563EB]" />
           <h2 className="text-sm font-bold text-[#0F172A]">
-            Python Implementation
+            Multi-Stack Python Implementation
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg bg-[#F1F5F9] p-0.5 border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setActiveTab('fromScratch')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                activeTab === 'fromScratch'
-                  ? 'bg-white text-[#0F172A] shadow-sm font-semibold'
-                  : 'text-[#475569] hover:text-[#0F172A]'
-              }`}
-            >
-              From Scratch (NumPy)
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('scikitLearn')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                activeTab === 'scikitLearn'
-                  ? 'bg-white text-[#0F172A] shadow-sm font-semibold'
-                  : 'text-[#475569] hover:text-[#0F172A]'
-              }`}
-            >
-              Production (Scikit-Learn)
-            </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex flex-wrap rounded-lg bg-[#F1F5F9] p-0.5 border border-slate-200">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveTab(t.key)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  activeTab === t.key
+                    ? 'bg-white text-[#0F172A] shadow-sm font-semibold'
+                    : 'text-[#475569] hover:text-[#0F172A]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
           <button

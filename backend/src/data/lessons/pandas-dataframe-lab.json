@@ -1,0 +1,73 @@
+{
+  "slug": "pandas-dataframe-lab",
+  "title": "Pandas: DataFrame Pipelines",
+  "subtitle": "Filter, GroupBy, Merge & Missing Value Imputation",
+  "domainId": "python-stack",
+  "domainTitle": "Python AI Stack",
+  "category": "library",
+  "visualizationType": "2d",
+  "supports2D3DToggle": false,
+  "difficulty": "Foundational",
+  "visualArchetype": "DataFramePipeline2D",
+  "summary": "Step through tabular transformations: filtering, groupby aggregations, joins, and NaN imputation.",
+  "evaluationChart": {
+    "type": "bar",
+    "title": "Pipeline Stage Row & Null Count",
+    "xLabel": "Pipeline Stage",
+    "yLabel": "Valid Records",
+    "description": "Tracks clean record counts across Ingestion, Imputation, Filtering, and GroupBy Aggregation."
+  },
+  "prosAndCons": {
+    "advantages": [
+      "Labeled row/column indexing with heterogeneous dtypes (strings, dates, floats).",
+      "Expressive SQL-like groupby, merge, pivot, and rolling window APIs.",
+      "Seamless missing-value (NaN) detection and imputation."
+    ],
+    "limitations": [
+      "Higher memory overhead than raw NumPy arrays (2x–5x for object columns).",
+      "Single-threaded eager execution (consider Polars/DuckDB for >10GB tables).",
+      "Chained indexing can trigger SettingWithCopyWarning if not using .loc."
+    ],
+    "properties": {
+      "timeComplexity": "O(N log N) joins/group",
+      "spaceComplexity": "O(N · C) columnar",
+      "hardware": "CPU (Single-node)",
+      "scalingRequired": "Data Cleaning Core"
+    },
+    "applications": [
+      "Exploratory Data Analysis (EDA)",
+      "Feature table construction & joins",
+      "Time-series resampling & rolling features"
+    ]
+  },
+  "pythonBridge": {
+    "pandas": "df.fillna(df.median()).groupby('segment').agg({'spend': 'mean'})",
+    "numpy": "df[['age', 'spend']].to_numpy() extracts clean float64 matrix for math engines.",
+    "pytorch": "torch.tensor(df.values, dtype=torch.float32) feeds cleaned tables into DataLoaders."
+  },
+  "formulas": [
+    {
+      "id": "groupby",
+      "label": "Split-Apply-Combine",
+      "latex": "\\text{GroupBy}(k) = \\bigcup_{g} \\text{Agg}\\left(\\{\\mathbf{r}_i : r_{i,k} = g\\}\\right)",
+      "description": "Partitions rows by key k, applies aggregation, and combines into a summary table."
+    }
+  ],
+  "hyperparameters": [
+    { "key": "minSpend", "label": "Filter Min Spend ($)", "min": 0, "max": 300, "step": 50, "defaultValue": 100, "unit": "$", "description": "Filters rows where spend >= minSpend." }
+  ],
+  "defaultDataset": [
+    { "id": 1, "segment": "Enterprise", "age": 34, "spend": 420 },
+    { "id": 2, "segment": "SMB", "age": 28, "spend": 140 },
+    { "id": 3, "segment": "Enterprise", "age": null, "spend": 510 },
+    { "id": 4, "segment": "Consumer", "age": 22, "spend": 65 },
+    { "id": 5, "segment": "SMB", "age": 41, "spend": 230 },
+    { "id": 6, "segment": "Enterprise", "age": 37, "spend": 390 }
+  ],
+  "codeTemplates": {
+    "purePython": "rows = [{'seg': 'Enterprise', 'spend': 420}, {'seg': 'SMB', 'spend': 140}]\nfiltered = [r for r in rows if r['spend'] >= 100]",
+    "fromScratch": "import pandas as pd\n\ndf = pd.DataFrame([\n    {'id': 1, 'segment': 'Enterprise', 'age': 34, 'spend': 420},\n    {'id': 2, 'segment': 'SMB', 'age': 28, 'spend': 140},\n    {'id': 3, 'segment': 'Enterprise', 'age': None, 'spend': 510},\n])\ndf['age'] = df['age'].fillna(df['age'].median())\nsummary = df[df['spend'] >= 100].groupby('segment')['spend'].mean()\nprint(summary)",
+    "scikitLearn": "from sklearn.impute import SimpleImputer\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.preprocessing import OneHotEncoder\n\npre = ColumnTransformer([\n    ('num', SimpleImputer(strategy='median'), ['age', 'spend']),\n    ('cat', OneHotEncoder(), ['segment'])\n])",
+    "pytorch": "import torch\n# After Pandas cleaning -> tensor\nX = torch.tensor([[34.0, 420.0], [28.0, 140.0]], dtype=torch.float32)\nprint('Batch tensor:', X.shape)"
+  }
+}

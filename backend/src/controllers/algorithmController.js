@@ -6,89 +6,152 @@ import Algorithm from '../models/Algorithm.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const dataDir = path.join(__dirname, '../data');
+const lessonsDir = path.join(dataDir, 'lessons');
 
-const SEED_FILES = [
-  'linearRegression.json',
-  'polynomialRidge.json',
-  'logisticRegression.json',
-  'knn.json',
-  'svmRbf.json',
-  'decisionTree.json',
-  'randomForest.json',
-  'gaussianNaiveBayes.json',
-  'kMeans.json',
-  'dbscan.json',
-  'hierarchicalClustering.json',
-  'gmmEm.json',
-  'pca.json',
-  'isolationForest.json'
-];
-
-const loadSeedLessons = () => {
-  const dataDir = path.join(__dirname, '../data');
-  return SEED_FILES.map((file) => {
-    const raw = fs.readFileSync(path.join(dataDir, file), 'utf-8');
-    return JSON.parse(raw);
-  }).sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+const loadRegistry = () => {
+  const raw = fs.readFileSync(path.join(dataDir, 'curriculumRegistry.json'), 'utf-8');
+  return JSON.parse(raw);
 };
+
+const LEGACY_FILE_MAP = {
+  'linear-regression': 'linearRegression.json',
+  'polynomial-ridge': 'polynomialRidge.json',
+  'logistic-regression': 'logisticRegression.json',
+  knn: 'knn.json',
+  'svm-rbf': 'svmRbf.json',
+  'decision-tree': 'decisionTree.json',
+  'random-forest': 'randomForest.json',
+  'gaussian-naive-bayes': 'gaussianNaiveBayes.json',
+  'k-means': 'kMeans.json',
+  dbscan: 'dbscan.json',
+  'hierarchical-clustering': 'hierarchicalClustering.json',
+  'gmm-em': 'gmmEm.json',
+  pca: 'pca.json',
+  'isolation-forest': 'isolationForest.json'
+};
+
+function enrichLesson(lesson, meta) {
+  const slug = lesson.slug || meta?.slug;
+  const title = lesson.title || meta?.title;
+  const code = lesson.codeTemplates || {};
+  return {
+    ...meta,
+    ...lesson,
+    visualArchetype: lesson.visualArchetype || meta?.visualArchetype || 'SpatialRegressionClassifier',
+    domainId: lesson.domainId || meta?.domainId || 'supervised-classification',
+    domainTitle: lesson.domainTitle || meta?.domainTitle || 'Core Curriculum',
+    pythonBridge: lesson.pythonBridge || {
+      pandas: `df = pd.read_csv('dataset.csv'); X = df.dropna()`,
+      numpy: `X_np = X.to_numpy(dtype=np.float64) # Vectorized ${title} matrix ops`,
+      pytorch: `X_t = torch.tensor(X_np, dtype=torch.float32, requires_grad=True)`
+    },
+    codeTemplates: {
+      purePython: code.purePython || `# Pure Python reference for ${title}\ndata = [1.0, 2.0, 3.0, 4.0]\nmean = sum(data) / len(data)\nprint('${title} mean:', mean)`,
+      fromScratch: code.fromScratch || `import numpy as np\n\n# NumPy Vectorized ${title}\nX = np.random.randn(20, 3)\nprint('${slug} shape:', X.shape)`,
+      scikitLearn: code.scikitLearn || `from sklearn.preprocessing import StandardScaler\nimport numpy as np\n\nX = np.random.randn(20, 3)\nX_scaled = StandardScaler().fit_transform(X)\nprint('Ready for ${title}:', X_scaled.shape)`,
+      pytorch: code.pytorch || `import torch\nimport torch.nn as nn\n\nX = torch.randn(20, 3, requires_grad=True)\nlayer = nn.Linear(3, 1)\nloss = layer(X).pow(2).mean()\nloss.backward()\nprint('${title} grad norm:', X.grad.norm().item())`
+    }
+  };
+}
+
+function buildFallbackLesson(meta) {
+  const is3D = meta.visualizationType === '3d';
+  return enrichLesson(
+    {
+      slug: meta.slug,
+      title: meta.title,
+      subtitle: `${meta.domainTitle} · Interactive Visual Lab`,
+      category: meta.category,
+      visualizationType: meta.visualizationType,
+      supports2D3DToggle: Boolean(meta.supports2D3DToggle),
+      difficulty: meta.difficulty,
+      visualArchetype: meta.visualArchetype,
+      summary: meta.summary,
+      evaluationChart: {
+        type: 'line',
+        title: `${meta.title} — Convergence & Diagnostic Profile`,
+        xLabel: 'Iteration / Complexity',
+        yLabel: 'Objective Metric',
+        description: `Live diagnostic curve computed client-side for ${meta.title}.`
+      },
+      prosAndCons: {
+        advantages: [
+          `Core ${meta.domainTitle} technique for structured pattern modeling.`,
+          `Maps cleanly to ${meta.visualArchetype} geometric intuition.`,
+          `Vectorizable in NumPy and accelerated on GPU via PyTorch.`
+        ],
+        limitations: [
+          'Requires careful hyperparameter tuning and validation splitting.',
+          'Performance depends on feature quality and representative sampling.'
+        ],
+        properties: {
+          timeComplexity: is3D ? 'O(T · n · d)' : 'O(n · log n)',
+          spaceComplexity: 'O(n · d)',
+          hardware: is3D ? 'CPU / GPU' : 'CPU Vectorized',
+          scalingRequired: 'Recommended'
+        },
+        applications: [meta.domainTitle, 'Production ML Pipelines', 'Research Prototyping']
+      },
+      formulas: [
+        {
+          id: 'core',
+          label: `${meta.title} Objective`,
+          latex: `\\mathcal{L}(\\theta) = \\frac{1}{n}\\sum_{i=1}^{n} \\ell\\left(f_\\theta(\\mathbf{x}_i), y_i\\right) + \\lambda \\Omega(\\theta)`,
+          description: `Balances empirical objective fit with regularization complexity for ${meta.title}.`
+        }
+      ],
+      hyperparameters: [
+        {
+          key: 'intensity',
+          label: 'Model Complexity / Step',
+          min: 1,
+          max: 10,
+          step: 1,
+          defaultValue: 5,
+          unit: '',
+          description: 'Adjusts active iteration depth or spatial scale at 0ms latency.'
+        },
+        {
+          key: 'learningRate',
+          label: 'Step Rate (α)',
+          min: 0.01,
+          max: 0.5,
+          step: 0.02,
+          defaultValue: 0.12,
+          unit: '',
+          description: 'Controls optimization or transition speed.'
+        }
+      ],
+      defaultDataset: []
+    },
+    meta
+  );
+}
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
 export const getAlgorithms = async (req, res, next) => {
   try {
-    const { category, visualizationType, difficulty } = req.query;
+    const { category, domainId } = req.query;
+    const registry = loadRegistry();
 
-    if (isDbConnected()) {
-      const filter = {};
-      if (category) filter.category = category;
-      if (visualizationType) filter.visualizationType = visualizationType;
-      if (difficulty) filter.difficulty = difficulty;
-
-      const algorithms = await Algorithm.find(filter)
-        .select(
-          'order slug title subtitle category visualizationType supports2D3DToggle difficulty summary'
-        )
-        .sort({ order: 1, title: 1 })
-        .lean();
-
-      if (algorithms.length > 0) {
-        return res.json({ source: 'mongodb', data: algorithms });
-      }
+    let algorithms = registry.algorithms;
+    if (category) {
+      algorithms = algorithms.filter((a) => a.category === category);
+    }
+    if (domainId) {
+      algorithms = algorithms.filter((a) => a.domainId === domainId);
     }
 
-    const seedLessons = loadSeedLessons();
-    const filtered = seedLessons.filter((item) => {
-      if (category && item.category !== category) return false;
-      if (visualizationType && item.visualizationType !== visualizationType) return false;
-      if (difficulty && item.difficulty !== difficulty) return false;
-      return true;
+    return res.json({
+      source: 'curriculum-registry',
+      totalAlgorithms: registry.totalAlgorithms,
+      totalDomains: registry.totalDomains,
+      domains: registry.domains,
+      libraries: registry.libraries,
+      data: algorithms
     });
-
-    const summaries = filtered.map(
-      ({
-        order,
-        slug,
-        title,
-        subtitle,
-        category: cat,
-        visualizationType: viz,
-        supports2D3DToggle,
-        difficulty: diff,
-        summary
-      }) => ({
-        order,
-        slug,
-        title,
-        subtitle,
-        category: cat,
-        visualizationType: viz,
-        supports2D3DToggle: Boolean(supports2D3DToggle),
-        difficulty: diff,
-        summary
-      })
-    );
-
-    return res.json({ source: 'seed-json', data: summaries });
   } catch (error) {
     return next(error);
   }
@@ -96,27 +159,40 @@ export const getAlgorithms = async (req, res, next) => {
 
 export const getAlgorithmBySlug = async (req, res, next) => {
   try {
-    const { slug } = req.params;
+    const slug = req.params.slug.toLowerCase();
+    const registry = loadRegistry();
+    const meta =
+      registry.algorithms.find((a) => a.slug === slug) ||
+      registry.libraries.find((l) => l.slug === slug);
 
     if (isDbConnected()) {
-      const algorithm = await Algorithm.findOne({ slug: slug.toLowerCase() }).lean();
-      if (algorithm) {
-        return res.json({ source: 'mongodb', data: algorithm });
+      const dbDoc = await Algorithm.findOne({ slug }).lean();
+      if (dbDoc) {
+        return res.json({ source: 'mongodb', data: enrichLesson(dbDoc, meta) });
       }
     }
 
-    const seedLessons = loadSeedLessons();
-    const seedMatch = seedLessons.find(
-      (item) => item.slug.toLowerCase() === slug.toLowerCase()
-    );
-
-    if (!seedMatch) {
-      const err = new Error(`Algorithm '${slug}' not found`);
-      err.statusCode = 404;
-      return next(err);
+    const lessonFile = path.join(lessonsDir, `${slug}.json`);
+    if (fs.existsSync(lessonFile)) {
+      const parsed = JSON.parse(fs.readFileSync(lessonFile, 'utf-8'));
+      return res.json({ source: 'lesson-json', data: enrichLesson(parsed, meta) });
     }
 
-    return res.json({ source: 'seed-json', data: seedMatch });
+    if (LEGACY_FILE_MAP[slug]) {
+      const legacyPath = path.join(dataDir, LEGACY_FILE_MAP[slug]);
+      if (fs.existsSync(legacyPath)) {
+        const parsed = JSON.parse(fs.readFileSync(legacyPath, 'utf-8'));
+        return res.json({ source: 'seed-json', data: enrichLesson(parsed, meta) });
+      }
+    }
+
+    if (meta) {
+      return res.json({ source: 'generated-curriculum', data: buildFallbackLesson(meta) });
+    }
+
+    const err = new Error(`Curriculum topic '${slug}' not found`);
+    err.statusCode = 404;
+    return next(err);
   } catch (error) {
     return next(error);
   }
